@@ -26,7 +26,7 @@ export const colors = {
   overlay: 'rgba(0, 0, 0, 0.5)',
   
   // Tab bar
-  tabActive: '#02CDAC',
+  tabActive: '#FFFFFF',
   tabInactive: '#9E9E9E',
   
   // Status

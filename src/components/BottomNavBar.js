@@ -30,6 +30,8 @@ const BottomNavBar = ({ activeTab = 'home', onTabPress }) => {
                 size={24}
                 color={isActive ? colors.tabActive : colors.tabInactive}
               />
+              {/* Active indicator dot */}
+              {isActive && <View style={styles.activeDot} />}
               {/* Uncomment for labels */}
               {/* <Text style={[styles.label, isActive && styles.labelActive]}>
                 {tab.label}
@@ -63,6 +65,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 4,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.textPrimary,
+    marginTop: 4,
   },
   label: {
     fontSize: 10,
