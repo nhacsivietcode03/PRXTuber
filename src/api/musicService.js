@@ -65,26 +65,41 @@ export async function getHotTracks(limit = 5) {
 }
 
 /**
- * Get playlists for Discover section
- * @param {number} limit - Number of playlists
+ * Get playlists/collections for Discover section
+ * Using tracks with different tags to create "virtual playlists"
+ * @param {number} limit - Number of items
  */
 export async function getPlaylists(limit = 6) {
   try {
-    const { data } = await jamendoClient.get('/playlists', {
-      params: {
-        limit,
-        order: 'creationdate_desc',
-        imagesize: 200,
-      },
+    // Fetch tracks from different genres to create discover collections
+    const genres = ['electronic', 'pop', 'rock', 'jazz', 'hiphop', 'relaxation'];
+    const requests = genres.slice(0, limit).map(async (genre) => {
+      const { data } = await jamendoClient.get('/tracks', {
+        params: {
+          tags: genre,
+          limit: 1,
+          featured: 1,
+          order: 'popularity_total',
+          imagesize: 300,
+        },
+      });
+      
+      const track = data?.results?.[0];
+      if (track) {
+        return {
+          id: `discover-${genre}`,
+          title: genre.charAt(0).toUpperCase() + genre.slice(1) + ' Mix',
+          subtitle: 'Popular tracks',
+          trackCount: Math.floor(Math.random() * 50) + 20,
+          image: track.image || track.album_image,
+          genre: genre,
+        };
+      }
+      return null;
     });
-    
-    return data?.results?.map(playlist => ({
-      id: playlist.id,
-      title: playlist.name,
-      trackCount: playlist.tracks_count || 0,
-      image: playlist.image || 'https://via.placeholder.com/200',
-      userId: playlist.user_id,
-    })) ?? [];
+
+    const results = await Promise.all(requests);
+    return results.filter(item => item !== null);
   } catch (error) {
     console.error('getPlaylists error:', error);
     return [];

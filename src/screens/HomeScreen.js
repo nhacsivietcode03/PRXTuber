@@ -13,16 +13,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   HomeHeader, 
   HotTopics, 
-  TopSongs, 
+  TopSongs,
+  Discover,
   BottomNavBar 
 } from '../components';
 import colors from '../theme/colors';
-import { getTopTracks, getHotTracks } from '../api/musicService';
+import { getTopTracks, getHotTracks, getPlaylists } from '../api/musicService';
 
 const HomeScreen = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [banners, setBanners] = useState([]);
   const [songs, setSongs] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPlayingId, setCurrentPlayingId] = useState(null);
@@ -31,13 +33,15 @@ const HomeScreen = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [hotTracks, topTracks] = await Promise.all([
+      const [hotTracks, topTracks, playlistData] = await Promise.all([
         getHotTracks(5),
         getTopTracks(6),
+        getPlaylists(6),
       ]);
 
       setBanners(hotTracks);
       setSongs(topTracks);
+      setPlaylists(playlistData);
     } catch (error) {
       console.error('Error fetching data:', error.message);
       Alert.alert('Lỗi', 'Không thể tải dữ liệu. Vui lòng thử lại.');
@@ -76,6 +80,14 @@ const HomeScreen = () => {
 
   const handleSeeAllTopSongs = () => {
     Alert.alert('See All', 'Navigate to Top Songs list');
+  };
+
+  const handleSeeAllDiscover = () => {
+    Alert.alert('See All', 'Navigate to Discover/Playlists');
+  };
+
+  const handlePlaylistPress = (playlist) => {
+    Alert.alert('Playlist', `Open: ${playlist.title}`);
   };
 
   const handleSongPress = (song, index) => {
@@ -144,6 +156,14 @@ const HomeScreen = () => {
           onSeeAllPress={handleSeeAllTopSongs}
           loading={loading}
           maxItems={5}
+        />
+        
+        {/* Discover Section */}
+        <Discover
+          playlists={playlists}
+          onPlaylistPress={handlePlaylistPress}
+          onSeeAllPress={handleSeeAllDiscover}
+          loading={loading}
         />
         
         {/* Bottom padding for nav bar */}
