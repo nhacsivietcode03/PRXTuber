@@ -120,9 +120,179 @@ export async function searchTracks(query, limit = 20) {
   }
 }
 
+/**
+ * Predefined featured genres from Jamendo
+ * These are the main genres supported by Jamendo's featured system
+ */
+export const GENRES = [
+  { id: 'pop', name: 'Pop', icon: 'musical-notes' },
+  { id: 'rock', name: 'Rock', icon: 'flame' },
+  { id: 'electronic', name: 'Electronic', icon: 'pulse' },
+  { id: 'hiphop', name: 'Hip Hop', icon: 'mic' },
+  { id: 'jazz', name: 'Jazz', icon: 'cafe' },
+  { id: 'classical', name: 'Classical', icon: 'bonfire' },
+  { id: 'metal', name: 'Metal', icon: 'skull' },
+  { id: 'lounge', name: 'Lounge', icon: 'wine' },
+  { id: 'relaxation', name: 'Relaxation', icon: 'leaf' },
+  { id: 'soundtrack', name: 'Soundtrack', icon: 'film' },
+  { id: 'world', name: 'World', icon: 'globe' },
+  { id: 'songwriter', name: 'Singer-Songwriter', icon: 'person' },
+];
+
+/**
+ * Get all available genres
+ * Returns static list of Jamendo featured genres
+ */
+export function getGenres() {
+  return GENRES;
+}
+
+/**
+ * Get tracks by genre/tag
+ * @param {string} genre - Genre tag (e.g., 'rock', 'pop', 'electronic')
+ * @param {number} limit - Number of tracks
+ * @param {string} order - Order by popularity
+ */
+export async function getTracksByGenre(genre, limit = 20, order = 'popularity_total') {
+  try {
+    const { data } = await jamendoClient.get('/tracks', {
+      params: {
+        tags: genre,
+        limit,
+        order,
+        featured: 1, // Get featured tracks for better quality
+        groupby: 'artist_id', // One track per artist to avoid duplicates
+        imagesize: 200,
+        include: 'musicinfo',
+      },
+    });
+    
+    return data?.results?.map(track => ({
+      id: track.id,
+      title: track.name,
+      artist: track.artist_name,
+      artistId: track.artist_id,
+      image: track.image,
+      audio: track.audio,
+      duration: track.duration,
+      albumName: track.album_name,
+      genre: genre,
+      musicinfo: track.musicinfo,
+    })) ?? [];
+  } catch (error) {
+    console.error('getTracksByGenre error:', error);
+    return [];
+  }
+}
+
+/**
+ * Get tracks filtered by vocal gender (male/female singer)
+ * @param {string} gender - 'male' or 'female'
+ * @param {number} limit - Number of tracks
+ */
+export async function getTracksByGender(gender, limit = 20) {
+  try {
+    const { data } = await jamendoClient.get('/tracks', {
+      params: {
+        gender: gender, // 'male' or 'female'
+        vocalinstrumental: 'vocal', // Only vocal tracks have gender
+        limit,
+        order: 'popularity_total',
+        imagesize: 200,
+        include: 'musicinfo',
+      },
+    });
+    
+    return data?.results?.map(track => ({
+      id: track.id,
+      title: track.name,
+      artist: track.artist_name,
+      artistId: track.artist_id,
+      image: track.image,
+      audio: track.audio,
+      duration: track.duration,
+      gender: gender,
+    })) ?? [];
+  } catch (error) {
+    console.error('getTracksByGender error:', error);
+    return [];
+  }
+}
+
+/**
+ * Get tracks with music info (includes genres, instruments, vartags)
+ * @param {number} limit - Number of tracks
+ */
+export async function getTracksWithMusicInfo(limit = 20) {
+  try {
+    const { data } = await jamendoClient.get('/tracks', {
+      params: {
+        limit,
+        order: 'popularity_total',
+        include: 'musicinfo', // Include genres, instruments, vartags
+        imagesize: 200,
+      },
+    });
+    
+    return data?.results?.map(track => ({
+      id: track.id,
+      title: track.name,
+      artist: track.artist_name,
+      image: track.image,
+      audio: track.audio,
+      duration: track.duration,
+      musicinfo: {
+        vocalinstrumental: track.musicinfo?.vocalinstrumental,
+        gender: track.musicinfo?.gender,
+        acousticelectric: track.musicinfo?.acousticelectric,
+        speed: track.musicinfo?.speed,
+        genres: track.musicinfo?.tags?.genres || [],
+        instruments: track.musicinfo?.tags?.instruments || [],
+        vartags: track.musicinfo?.tags?.vartags || [],
+      },
+    })) ?? [];
+  } catch (error) {
+    console.error('getTracksWithMusicInfo error:', error);
+    return [];
+  }
+}
+
+/**
+ * Get artists for Discover section
+ * @param {number} limit - Number of artists
+ */
+export async function getArtists(limit = 20) {
+  try {
+    const { data } = await jamendoClient.get('/artists', {
+      params: {
+        limit,
+        order: 'popularity_total',
+        imagesize: 200,
+      },
+    });
+    
+    return data?.results?.map(artist => ({
+      id: artist.id,
+      name: artist.name,
+      image: artist.image || 'https://via.placeholder.com/200',
+      website: artist.website,
+      joindate: artist.joindate,
+    })) ?? [];
+  } catch (error) {
+    console.error('getArtists error:', error);
+    return [];
+  }
+}
+
 export default {
   getTopTracks,
   getHotTracks,
   getPlaylists,
   searchTracks,
+  getGenres,
+  getTracksByGenre,
+  getTracksByGender,
+  getTracksWithMusicInfo,
+  getArtists,
+  GENRES,
 };
