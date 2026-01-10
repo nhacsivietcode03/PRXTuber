@@ -127,19 +127,20 @@ const TopicDetailScreen = ({ route, navigation }) => {
                 {topic?.title || 'Top songs of the week'}
               </Text>
               
+              {/* Centered Play All Button */}
               <View style={styles.playAllContainer}>
                 <TouchableOpacity 
                   style={styles.playAllButton}
                   onPress={handlePlayAll}
                 >
-                  <Ionicons name="play" size={20} color={colors.background} />
+                  <Ionicons name="play" size={18} color={colors.background} />
                   <Text style={styles.playAllText}>Play all</Text>
                 </TouchableOpacity>
-                
-                <Text style={styles.trackCount}>
-                  {songs.length} tracks
-                </Text>
               </View>
+              
+              <Text style={styles.trackCount}>
+                {songs.length} tracks
+              </Text>
             </View>
           </LinearGradient>
         </ImageBackground>
@@ -235,25 +236,28 @@ const styles = StyleSheet.create({
   topicInfo: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+    alignItems: 'center',
   },
   topicTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 16,
+    textAlign: 'center',
   },
   playAllContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   playAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.textPrimary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
-    marginRight: 12,
   },
   playAllText: {
     fontSize: 14,
@@ -264,6 +268,7 @@ const styles = StyleSheet.create({
   trackCount: {
     fontSize: 14,
     color: colors.textSecondary,
+    textAlign: 'center',
   },
   songsSection: {
     paddingTop: 16,
