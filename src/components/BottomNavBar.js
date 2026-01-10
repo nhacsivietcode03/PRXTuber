@@ -50,8 +50,6 @@ const BottomNavBar = ({ activeTab = 'home', onTabPress }) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.divider,
     paddingBottom: 8,
   },
   tabsContainer: {

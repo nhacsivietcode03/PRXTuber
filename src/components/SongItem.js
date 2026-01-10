@@ -9,22 +9,16 @@ const SongItem = ({
   title, 
   artist, 
   image, 
-  duration,
   isPlaying = false,
-  onPress, 
-  onMorePress 
+  isCurrentSong = false,
+  onPress,
 }) => {
-  // Format duration from seconds to mm:ss
-  const formatDuration = (seconds) => {
-    if (!seconds) return '';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   return (
     <TouchableOpacity 
-      style={[styles.container, isPlaying && styles.containerPlaying]}
+      style={[
+        styles.container, 
+        (isPlaying || isCurrentSong) && styles.containerPlaying
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -36,7 +30,10 @@ const SongItem = ({
       
       <View style={styles.info}>
         <Text 
-          style={[styles.title, isPlaying && styles.titlePlaying]} 
+          style={[
+            styles.title, 
+            (isPlaying || isCurrentSong) && styles.titlePlaying
+          ]} 
           numberOfLines={1}
         >
           {title}
@@ -46,17 +43,12 @@ const SongItem = ({
         </Text>
       </View>
       
-      {duration && (
-        <Text style={styles.duration}>{formatDuration(duration)}</Text>
+      {/* Show equalizer icon when playing */}
+      {isCurrentSong && (
+        <View style={styles.equalizerIcon}>
+          <Ionicons name="bar-chart" size={18} color={colors.primary} />
+        </View>
       )}
-      
-      <TouchableOpacity 
-        style={styles.moreButton}
-        onPress={onMorePress}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Ionicons name="ellipsis-vertical" size={18} color={colors.textSecondary} />
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
@@ -95,12 +87,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-  duration: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginRight: 8,
-  },
-  moreButton: {
+  equalizerIcon: {
     padding: 8,
   },
 });

@@ -61,10 +61,9 @@ const TopSongs = ({
           title={song.title}
           artist={song.artist}
           image={song.image}
-          duration={song.duration}
           isPlaying={song.id === currentPlayingId}
+          isCurrentSong={song.id === currentPlayingId}
           onPress={() => onSongPress?.(song, index)}
-          onMorePress={() => onMorePress?.(song)}
         />
       ))}
     </View>

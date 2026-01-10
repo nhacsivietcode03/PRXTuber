@@ -7,4 +7,5 @@ export { default as SongItem } from './SongItem';
 export { default as TopSongs } from './TopSongs';
 export { default as DiscoverCard } from './DiscoverCard';
 export { default as Discover } from './Discover';
+export { default as NowPlayingBar } from './NowPlayingBar';
 export { default as BottomNavBar } from './BottomNavBar';

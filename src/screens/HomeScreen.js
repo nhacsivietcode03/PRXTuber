@@ -1,21 +1,22 @@
 // HomeScreen - Main home screen combining all components
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  View, 
-  ScrollView, 
-  StyleSheet, 
+import {
+  View,
+  ScrollView,
+  StyleSheet,
   RefreshControl,
   Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { 
-  HomeHeader, 
-  HotTopics, 
+import {
+  HomeHeader,
+  HotTopics,
   TopSongs,
   Discover,
-  BottomNavBar 
+  NowPlayingBar,
+  BottomNavBar
 } from '../components';
 import colors from '../theme/colors';
 import { getTopTracks, getHotTracks, getPlaylists } from '../api/musicService';
@@ -28,6 +29,8 @@ const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPlayingId, setCurrentPlayingId] = useState(null);
+  const [currentSong, setCurrentSong] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Fetch data from Jamendo API
   const fetchData = useCallback(async () => {
@@ -92,7 +95,16 @@ const HomeScreen = () => {
 
   const handleSongPress = (song, index) => {
     setCurrentPlayingId(song.id);
-    Alert.alert('Now Playing', `${song.title} - ${song.artist}`);
+    setCurrentSong(song);
+    setIsPlaying(true);
+  };
+
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleNowPlayingPress = () => {
+    Alert.alert('Player', 'Navigate to full Player screen');
   };
 
   const handleMorePress = (song) => {
@@ -101,8 +113,8 @@ const HomeScreen = () => {
       'Choose an option',
       [
         { text: 'Play', onPress: () => handleSongPress(song, 0) },
-        { text: 'Add to Playlist', onPress: () => {} },
-        { text: 'Share', onPress: () => {} },
+        { text: 'Add to Playlist', onPress: () => { } },
+        { text: 'Share', onPress: () => { } },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
@@ -118,7 +130,7 @@ const HomeScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="light" />
-      
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -133,11 +145,11 @@ const HomeScreen = () => {
         }
       >
         {/* Header */}
-        <HomeHeader 
+        <HomeHeader
           userName="Welcome back!"
           onSearchPress={handleSearchPress}
         />
-        
+
         {/* Hot Topics Section */}
         <HotTopics
           banners={banners}
@@ -146,7 +158,7 @@ const HomeScreen = () => {
           onSeeAllPress={handleSeeAllHotTopics}
           loading={loading}
         />
-        
+
         {/* Top Songs Section */}
         <TopSongs
           songs={songs}
@@ -157,7 +169,7 @@ const HomeScreen = () => {
           loading={loading}
           maxItems={5}
         />
-        
+
         {/* Discover Section */}
         <Discover
           playlists={playlists}
@@ -165,13 +177,23 @@ const HomeScreen = () => {
           onSeeAllPress={handleSeeAllDiscover}
           loading={loading}
         />
-        
+
         {/* Bottom padding for nav bar */}
         <View style={styles.bottomPadding} />
       </ScrollView>
-      
+
+      {/* Now Playing Bar */}
+      {currentSong && (
+        <NowPlayingBar
+          song={currentSong}
+          isPlaying={isPlaying}
+          onPlayPause={handlePlayPause}
+          onPress={handleNowPlayingPress}
+        />
+      )}
+
       {/* Bottom Navigation */}
-      <BottomNavBar 
+      <BottomNavBar
         activeTab={activeTab}
         onTabPress={handleTabPress}
       />
