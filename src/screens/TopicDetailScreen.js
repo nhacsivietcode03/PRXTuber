@@ -1,0 +1,286 @@
+// TopicDetailScreen - Shows songs in a topic/playlist
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  ImageBackground,
+  ActivityIndicator,
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+
+import { SongItem, NowPlayingBar, BottomNavBar } from '../components';
+import colors from '../theme/colors';
+import { getTracksByGenre, getTopTracks } from '../api/musicService';
+
+const TopicDetailScreen = ({ route, navigation }) => {
+  const { topic } = route.params || {};
+  
+  const [songs, setSongs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentSong, setCurrentSong] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentPlayingId, setCurrentPlayingId] = useState(null);
+  const [activeTab, setActiveTab] = useState('home');
+
+  // Fetch songs for this topic
+  const fetchSongs = useCallback(async () => {
+    try {
+      setLoading(true);
+      let tracks;
+      
+      if (topic?.genre) {
+        // Fetch by genre/tag
+        tracks = await getTracksByGenre(topic.genre, 20);
+      } else {
+        // Fallback to top tracks
+        tracks = await getTopTracks(20);
+      }
+      
+      setSongs(tracks);
+    } catch (error) {
+      console.error('Error fetching songs:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [topic?.genre]);
+
+  useEffect(() => {
+    fetchSongs();
+  }, [fetchSongs]);
+
+  // Handlers
+  const handleBack = () => {
+    navigation.goBack();
+  };
+
+  const handlePlayAll = () => {
+    if (songs.length > 0) {
+      setCurrentSong(songs[0]);
+      setCurrentPlayingId(songs[0].id);
+      setIsPlaying(true);
+    }
+  };
+
+  const handleSongPress = (song, index) => {
+    setCurrentSong(song);
+    setCurrentPlayingId(song.id);
+    setIsPlaying(true);
+  };
+
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleNowPlayingPress = () => {
+    // Navigate to full player screen
+  };
+
+  const handleTabPress = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'home') {
+      navigation.goBack();
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Banner */}
+        <ImageBackground
+          source={{ uri: topic?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800' }}
+          style={styles.heroBanner}
+        >
+          <LinearGradient
+            colors={['rgba(0,0,0,0.3)', 'rgba(18,18,18,1)']}
+            style={styles.heroGradient}
+          >
+            {/* Header */}
+            <SafeAreaView edges={['top']}>
+              <View style={styles.header}>
+                <TouchableOpacity 
+                  style={styles.backButton}
+                  onPress={handleBack}
+                >
+                  <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle} numberOfLines={1}>
+                  {topic?.title || 'Top songs of the week'}
+                </Text>
+                <View style={styles.placeholder} />
+              </View>
+            </SafeAreaView>
+
+            {/* Topic Info */}
+            <View style={styles.topicInfo}>
+              <Text style={styles.topicTitle}>
+                {topic?.title || 'Top songs of the week'}
+              </Text>
+              
+              <View style={styles.playAllContainer}>
+                <TouchableOpacity 
+                  style={styles.playAllButton}
+                  onPress={handlePlayAll}
+                >
+                  <Ionicons name="play" size={20} color={colors.background} />
+                  <Text style={styles.playAllText}>Play all</Text>
+                </TouchableOpacity>
+                
+                <Text style={styles.trackCount}>
+                  {songs.length} tracks
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </ImageBackground>
+
+        {/* Songs List */}
+        <View style={styles.songsSection}>
+          <Text style={styles.sectionTitle}>Top Song</Text>
+          
+          {loading ? (
+            <ActivityIndicator 
+              size="large" 
+              color={colors.primary} 
+              style={styles.loader}
+            />
+          ) : (
+            songs.map((song, index) => (
+              <SongItem
+                key={song.id}
+                id={song.id}
+                title={song.title}
+                artist={song.artist}
+                image={song.image}
+                isPlaying={song.id === currentPlayingId}
+                isCurrentSong={song.id === currentPlayingId}
+                onPress={() => handleSongPress(song, index)}
+              />
+            ))
+          )}
+        </View>
+
+        {/* Bottom spacing */}
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
+
+      {/* Now Playing Bar */}
+      {currentSong && (
+        <NowPlayingBar
+          song={currentSong}
+          isPlaying={isPlaying}
+          onPlayPause={handlePlayPause}
+          onPress={handleNowPlayingPress}
+        />
+      )}
+
+      {/* Bottom Navigation */}
+      <BottomNavBar
+        activeTab={activeTab}
+        onTabPress={handleTabPress}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  heroBanner: {
+    height: 280,
+  },
+  heroGradient: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  placeholder: {
+    width: 40,
+  },
+  topicInfo: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  topicTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 16,
+  },
+  playAllContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  playAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.textPrimary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  playAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.background,
+    marginLeft: 6,
+  },
+  trackCount: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  songsSection: {
+    paddingTop: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  loader: {
+    marginTop: 40,
+  },
+  bottomSpacing: {
+    height: 150,
+  },
+});
+
+export default TopicDetailScreen;

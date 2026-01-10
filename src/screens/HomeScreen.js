@@ -21,7 +21,7 @@ import {
 import colors from '../theme/colors';
 import { getTopTracks, getHotTracks, getPlaylists } from '../api/musicService';
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [banners, setBanners] = useState([]);
   const [songs, setSongs] = useState([]);
@@ -70,11 +70,27 @@ const HomeScreen = () => {
   };
 
   const handleBannerPress = (banner) => {
-    Alert.alert('Banner', `Open: ${banner.title}`);
+    navigation.navigate('TopicDetail', { 
+      topic: {
+        id: banner.id,
+        title: banner.title,
+        image: banner.image,
+        genre: banner.genre || null,
+      }
+    });
   };
 
   const handlePlayBanner = (banner) => {
-    Alert.alert('Play', `Playing: ${banner.title}`);
+    // Navigate and auto-play
+    navigation.navigate('TopicDetail', { 
+      topic: {
+        id: banner.id,
+        title: banner.title,
+        image: banner.image,
+        genre: banner.genre || null,
+        autoPlay: true,
+      }
+    });
   };
 
   const handleSeeAllHotTopics = () => {
