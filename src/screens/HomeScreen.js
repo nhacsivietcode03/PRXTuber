@@ -107,7 +107,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleSeeAllDiscover = () => {
-    Alert.alert('See All', 'Navigate to Discover/Playlists');
+    navigation.navigate('Discover');
   };
 
   const handlePlaylistPress = (playlist) => {
