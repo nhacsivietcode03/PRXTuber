@@ -51,13 +51,22 @@ export async function getHotTracks(limit = 5) {
       },
     });
     
-    return data?.results?.map(track => ({
-      id: track.id,
-      title: track.name,
-      subtitle: track.artist_name,
-      image: track.image,
-      audio: track.audio,
-    })) ?? [];
+    return data?.results?.map(track => {
+      // Get genre from musicinfo tags
+      const genres = track.musicinfo?.tags?.genres || [];
+      const firstGenre = genres[0] || null;
+      
+      return {
+        id: track.id,
+        title: track.name,
+        subtitle: track.artist_name,
+        artistId: track.artist_id,
+        image: track.image,
+        audio: track.audio,
+        genre: firstGenre, // Add genre for topic filtering
+        albumId: track.album_id,
+      };
+    }) ?? [];
   } catch (error) {
     console.error('getHotTracks error:', error);
     return [];
@@ -299,6 +308,39 @@ export async function getArtists(limit = 20) {
   }
 }
 
+/**
+ * Get tracks by artist ID
+ * @param {string|number} artistId - Artist ID
+ * @param {number} limit - Number of tracks
+ */
+export async function getTracksByArtist(artistId, limit = 20) {
+  try {
+    const { data } = await jamendoClient.get('/tracks', {
+      params: {
+        artist_id: artistId,
+        limit,
+        order: 'popularity_total',
+        imagesize: 200,
+        include: 'musicinfo',
+      },
+    });
+    
+    return data?.results?.map(track => ({
+      id: track.id,
+      title: track.name,
+      artist: track.artist_name,
+      artistId: track.artist_id,
+      image: track.image,
+      audio: track.audio,
+      duration: track.duration,
+      albumName: track.album_name,
+    })) ?? [];
+  } catch (error) {
+    console.error('getTracksByArtist error:', error);
+    return [];
+  }
+}
+
 export default {
   getTopTracks,
   getHotTracks,
@@ -309,5 +351,6 @@ export default {
   getTracksByGender,
   getTracksWithMusicInfo,
   getArtists,
+  getTracksByArtist,
   GENRES,
 };

@@ -8,15 +8,16 @@ import {
   TouchableOpacity,
   ImageBackground,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SongItem, NowPlayingBar, BottomNavBar } from '../components';
+import { SongItem, NowPlayingBar, BottomNavBar, SongBottomSheet } from '../components';
 import colors from '../theme/colors';
-import { getTracksByGenre, getTopTracks } from '../api/musicService';
+import { getTracksByGenre, getTopTracks, getTracksByArtist } from '../api/musicService';
 
 const TopicDetailScreen = ({ route, navigation }) => {
   const { topic } = route.params || {};
@@ -27,6 +28,8 @@ const TopicDetailScreen = ({ route, navigation }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPlayingId, setCurrentPlayingId] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
+  const [selectedSong, setSelectedSong] = useState(null);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
 
   // Fetch songs for this topic
   const fetchSongs = useCallback(async () => {
@@ -37,6 +40,9 @@ const TopicDetailScreen = ({ route, navigation }) => {
       if (topic?.genre) {
         // Fetch by genre/tag
         tracks = await getTracksByGenre(topic.genre, 20);
+      } else if (topic?.artistId) {
+        // Fetch by artist ID (for hot topics from specific artist)
+        tracks = await getTracksByArtist(topic.artistId, 20);
       } else {
         // Fallback to top tracks
         tracks = await getTopTracks(20);
@@ -48,7 +54,7 @@ const TopicDetailScreen = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
-  }, [topic?.genre]);
+  }, [topic?.genre, topic?.artistId]);
 
   useEffect(() => {
     fetchSongs();
@@ -88,6 +94,42 @@ const TopicDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleMorePress = (songData) => {
+    console.log('handleMorePress called with:', JSON.stringify(songData));
+    if (songData) {
+      console.log('Setting selectedSong and showing bottom sheet');
+      setSelectedSong(songData);
+      setShowBottomSheet(true);
+    } else {
+      console.log('songData is null/undefined');
+    }
+  };
+
+  const handleCloseBottomSheet = () => {
+    setShowBottomSheet(false);
+    setSelectedSong(null);
+  };
+
+  const handleBottomSheetPlay = () => {
+    if (selectedSong) {
+      setCurrentSong(selectedSong);
+      setCurrentPlayingId(selectedSong.id);
+      setIsPlaying(true);
+    }
+  };
+
+  const handleAddToPlaylist = () => {
+    Alert.alert('Add to Playlist', `"${selectedSong?.title}" will be added to playlist.\n\nFeature coming soon!`);
+  };
+
+  const handleAddToFavorites = () => {
+    Alert.alert('Add to Favorites', `"${selectedSong?.title}" added to your favorites!`);
+  };
+
+  const handleShare = () => {
+    Alert.alert('Share', `Share "${selectedSong?.title}" by ${selectedSong?.artist}\n\nFeature coming soon!`);
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -95,6 +137,8 @@ const TopicDetailScreen = ({ route, navigation }) => {
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
       >
         {/* Hero Banner */}
         <ImageBackground
@@ -163,9 +207,11 @@ const TopicDetailScreen = ({ route, navigation }) => {
                 title={song.title}
                 artist={song.artist}
                 image={song.image}
+                song={song}
                 isPlaying={song.id === currentPlayingId}
                 isCurrentSong={song.id === currentPlayingId}
                 onPress={() => handleSongPress(song, index)}
+                onMorePress={handleMorePress}
               />
             ))
           )}
@@ -189,6 +235,17 @@ const TopicDetailScreen = ({ route, navigation }) => {
       <BottomNavBar
         activeTab={activeTab}
         onTabPress={handleTabPress}
+      />
+
+      {/* Song Bottom Sheet */}
+      <SongBottomSheet
+        visible={showBottomSheet}
+        song={selectedSong}
+        onClose={handleCloseBottomSheet}
+        onPlay={handleBottomSheetPlay}
+        onAddToPlaylist={handleAddToPlaylist}
+        onAddToFavorites={handleAddToFavorites}
+        onShare={handleShare}
       />
     </View>
   );

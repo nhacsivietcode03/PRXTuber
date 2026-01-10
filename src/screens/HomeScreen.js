@@ -16,7 +16,8 @@ import {
   TopSongs,
   Discover,
   NowPlayingBar,
-  BottomNavBar
+  BottomNavBar,
+  SongBottomSheet,
 } from '../components';
 import colors from '../theme/colors';
 import { getTopTracks, getHotTracks, getPlaylists } from '../api/musicService';
@@ -31,6 +32,8 @@ const HomeScreen = ({ navigation }) => {
   const [currentPlayingId, setCurrentPlayingId] = useState(null);
   const [currentSong, setCurrentSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedSong, setSelectedSong] = useState(null);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
 
   // Fetch data from Jamendo API
   const fetchData = useCallback(async () => {
@@ -76,6 +79,7 @@ const HomeScreen = ({ navigation }) => {
         title: banner.title,
         image: banner.image,
         genre: banner.genre || null,
+        artistId: banner.artistId || null,
       }
     });
   };
@@ -88,6 +92,7 @@ const HomeScreen = ({ navigation }) => {
         title: banner.title,
         image: banner.image,
         genre: banner.genre || null,
+        artistId: banner.artistId || null,
         autoPlay: true,
       }
     });
@@ -124,16 +129,36 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleMorePress = (song) => {
-    Alert.alert(
-      song.title,
-      'Choose an option',
-      [
-        { text: 'Play', onPress: () => handleSongPress(song, 0) },
-        { text: 'Add to Playlist', onPress: () => { } },
-        { text: 'Share', onPress: () => { } },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    console.log('HomeScreen handleMorePress:', song?.title, song?.image);
+    if (song) {
+      setSelectedSong(song);
+      setShowBottomSheet(true);
+    }
+  };
+
+  const handleCloseBottomSheet = () => {
+    setShowBottomSheet(false);
+    setSelectedSong(null);
+  };
+
+  const handleBottomSheetPlay = () => {
+    if (selectedSong) {
+      setCurrentSong(selectedSong);
+      setCurrentPlayingId(selectedSong.id);
+      setIsPlaying(true);
+    }
+  };
+
+  const handleAddToPlaylist = () => {
+    Alert.alert('Add to Playlist', `"${selectedSong?.title}" will be added to playlist.\n\nFeature coming soon!`);
+  };
+
+  const handleAddToFavorites = () => {
+    Alert.alert('Add to Favorites', `"${selectedSong?.title}" added to your favorites!`);
+  };
+
+  const handleShare = () => {
+    Alert.alert('Share', `Share "${selectedSong?.title}" by ${selectedSong?.artist}\n\nFeature coming soon!`);
   };
 
   const handleTabPress = (tabId) => {
@@ -212,6 +237,17 @@ const HomeScreen = ({ navigation }) => {
       <BottomNavBar
         activeTab={activeTab}
         onTabPress={handleTabPress}
+      />
+
+      {/* Song Bottom Sheet */}
+      <SongBottomSheet
+        visible={showBottomSheet}
+        song={selectedSong}
+        onClose={handleCloseBottomSheet}
+        onPlay={handleBottomSheetPlay}
+        onAddToPlaylist={handleAddToPlaylist}
+        onAddToFavorites={handleAddToFavorites}
+        onShare={handleShare}
       />
     </SafeAreaView>
   );

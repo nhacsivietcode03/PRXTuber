@@ -9,3 +9,4 @@ export { default as DiscoverCard } from './DiscoverCard';
 export { default as Discover } from './Discover';
 export { default as NowPlayingBar } from './NowPlayingBar';
 export { default as BottomNavBar } from './BottomNavBar';
+export { default as SongBottomSheet } from './SongBottomSheet';
