@@ -103,7 +103,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleSeeAllTopSongs = () => {
-    Alert.alert('See All', 'Navigate to Top Songs list');
+    navigation.navigate('TopSongs');
   };
 
   const handleSeeAllDiscover = () => {
