@@ -69,7 +69,7 @@ const HomeScreen = ({ navigation }) => {
 
   // Handlers
   const handleSearchPress = () => {
-    Alert.alert('Search', 'Navigate to Search screen');
+    navigation.navigate('Search');
   };
 
   const handleBannerPress = (banner) => {
@@ -118,6 +118,8 @@ const HomeScreen = ({ navigation }) => {
     setCurrentPlayingId(song.id);
     setCurrentSong(song);
     setIsPlaying(true);
+    // Navigate to PlayScreen
+    navigation.navigate('Play', { song, playlist: songs });
   };
 
   const handlePlayPause = () => {
@@ -125,7 +127,9 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleNowPlayingPress = () => {
-    Alert.alert('Player', 'Navigate to full Player screen');
+    if (currentSong) {
+      navigation.navigate('Play', { song: currentSong, playlist: songs });
+    }
   };
 
   const handleMorePress = (song) => {

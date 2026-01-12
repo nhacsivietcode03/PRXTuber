@@ -77,6 +77,8 @@ const TopicDetailScreen = ({ route, navigation }) => {
     setCurrentSong(song);
     setCurrentPlayingId(song.id);
     setIsPlaying(true);
+    // Navigate to PlayScreen
+    navigation.navigate('Play', { song, playlist: songs });
   };
 
   const handlePlayPause = () => {
@@ -85,6 +87,9 @@ const TopicDetailScreen = ({ route, navigation }) => {
 
   const handleNowPlayingPress = () => {
     // Navigate to full player screen
+    if (currentSong) {
+      navigation.navigate('Play', { song: currentSong, playlist: songs });
+    }
   };
 
   const handleTabPress = (tabId) => {

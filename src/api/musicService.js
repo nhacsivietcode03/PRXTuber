@@ -82,33 +82,39 @@ export async function getPlaylists(limit = 6) {
   try {
     // Fetch tracks from different genres to create discover collections
     const genres = ['electronic', 'pop', 'rock', 'jazz', 'hiphop', 'relaxation'];
-    const requests = genres.slice(0, limit).map(async (genre) => {
-      const { data } = await jamendoClient.get('/tracks', {
-        params: {
-          tags: genre,
-          limit: 1,
-          featured: 1,
-          order: 'popularity_total',
-          imagesize: 300,
-        },
-      });
-      
-      const track = data?.results?.[0];
-      if (track) {
-        return {
-          id: `discover-${genre}`,
-          title: genre.charAt(0).toUpperCase() + genre.slice(1) + ' Mix',
-          subtitle: 'Popular tracks',
-          trackCount: Math.floor(Math.random() * 50) + 20,
-          image: track.image || track.album_image,
-          genre: genre,
-        };
+    const results = [];
+    
+    // Gọi API tuần tự để tránh quá tải mạng
+    for (const genre of genres.slice(0, limit)) {
+      try {
+        const { data } = await jamendoClient.get('/tracks', {
+          params: {
+            tags: genre,
+            limit: 1,
+            featured: 1,
+            order: 'popularity_total',
+            imagesize: 300,
+          },
+        });
+        
+        const track = data?.results?.[0];
+        if (track) {
+          results.push({
+            id: `discover-${genre}`,
+            title: genre.charAt(0).toUpperCase() + genre.slice(1) + ' Mix',
+            subtitle: 'Popular tracks',
+            trackCount: Math.floor(Math.random() * 50) + 20,
+            image: track.image || track.album_image,
+            genre: genre,
+          });
+        }
+      } catch (genreError) {
+        console.warn(`Failed to fetch ${genre} playlist:`, genreError.message);
+        // Tiếp tục với genre tiếp theo
       }
-      return null;
-    });
+    }
 
-    const results = await Promise.all(requests);
-    return results.filter(item => item !== null);
+    return results;
   } catch (error) {
     console.error('getPlaylists error:', error);
     return [];

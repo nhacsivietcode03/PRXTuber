@@ -54,6 +54,8 @@ const TopSongsScreen = ({ navigation }) => {
     setCurrentSong(song);
     setCurrentPlayingId(song.id);
     setIsPlaying(true);
+    // Navigate to PlayScreen
+    navigation.navigate('Play', { song, playlist: songs });
   };
 
   const handlePlayPause = () => {
@@ -62,6 +64,9 @@ const TopSongsScreen = ({ navigation }) => {
 
   const handleNowPlayingPress = () => {
     // Navigate to full player screen
+    if (currentSong) {
+      navigation.navigate('Play', { song: currentSong, playlist: songs });
+    }
   };
 
   const handleMorePress = (song) => {

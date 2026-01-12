@@ -7,6 +7,8 @@ import HomeScreen from '../screens/HomeScreen';
 import TopicDetailScreen from '../screens/TopicDetailScreen';
 import TopSongsScreen from '../screens/TopSongsScreen';
 import DiscoverScreen from '../screens/DiscoverScreen';
+import SearchScreen from '../screens/SearchScreen';
+import PlayScreen from '../screens/PlayScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +25,14 @@ const AppNavigator = () => {
         <Stack.Screen name="TopicDetail" component={TopicDetailScreen} />
         <Stack.Screen name="TopSongs" component={TopSongsScreen} />
         <Stack.Screen name="Discover" component={DiscoverScreen} />
+        <Stack.Screen name="Search" component={SearchScreen} />
+        <Stack.Screen 
+          name="Play" 
+          component={PlayScreen}
+          options={{
+            animation: 'slide_from_bottom',
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
