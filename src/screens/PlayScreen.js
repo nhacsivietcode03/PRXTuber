@@ -1,5 +1,5 @@
 // PlayScreen - Music/Video Player Screen (Figma Design Match)
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,157 +9,54 @@ import {
   Dimensions,
   FlatList,
   Animated,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
 import Slider from '@react-native-community/slider';
 
 import colors from '../theme/colors';
+import { useMusicPlayer } from '../context';
+import { AddToPlaylistSheet } from '../components';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const PlayScreen = ({ route, navigation }) => {
-  const { song, playlist = [] } = route.params || {};
+  const { song, playlist: routePlaylist = [] } = route.params || {};
   
-  const [currentSong, setCurrentSong] = useState(song);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [sound, setSound] = useState(null);
-  const [duration, setDuration] = useState(0);
-  const [position, setPosition] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const {
+    currentSong,
+    playlist,
+    isPlaying,
+    isLoading,
+    duration,
+    position,
+    repeatMode,
+    isFavorite,
+    playSong,
+    togglePlayPause,
+    seekTo,
+    playNext,
+    playPrevious,
+    toggleFavorite,
+    toggleRepeat,
+    setPlaylist,
+    formatTime,
+  } = useMusicPlayer();
+  
   const [showPlaylist, setShowPlaylist] = useState(false);
-  const [repeatMode, setRepeatMode] = useState(0); // 0: off, 1: all, 2: one
-  
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const playlistSheetAnim = useRef(new Animated.Value(0)).current;
 
-  // Format time from milliseconds
-  const formatTime = (millis) => {
-    if (!millis || isNaN(millis)) return '00:00';
-    const totalSeconds = Math.floor(millis / 1000);
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Load and play audio
-  const loadAudio = useCallback(async (audioUrl) => {
-    try {
-      setIsLoading(true);
-      
-      // Unload previous sound
-      if (sound) {
-        await sound.unloadAsync();
-      }
-
-      // Configure audio mode
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: true,
-      });
-
-      // Load new sound
-      const { sound: newSound, status } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: true },
-        onPlaybackStatusUpdate
-      );
-
-      setSound(newSound);
-      setDuration(status.durationMillis || 0);
-      setIsPlaying(true);
-    } catch (error) {
-      console.error('Error loading audio:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sound]);
-
-  // Playback status update callback
-  const onPlaybackStatusUpdate = (status) => {
-    if (status.isLoaded) {
-      setPosition(status.positionMillis);
-      setDuration(status.durationMillis || 0);
-      setIsPlaying(status.isPlaying);
-
-      // Handle song end
-      if (status.didJustFinish) {
-        handleNext();
-      }
-    }
-  };
-
-  // Load audio when component mounts or song changes
+  // Play the song from route params when screen opens
   useEffect(() => {
-    if (currentSong?.audio) {
-      loadAudio(currentSong.audio);
+    if (song && (!currentSong || currentSong.id !== song.id)) {
+      playSong(song, routePlaylist);
+    } else if (routePlaylist.length > 0 && playlist.length === 0) {
+      setPlaylist(routePlaylist);
     }
-
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [currentSong]);
-
-  // Toggle play/pause
-  const togglePlayPause = async () => {
-    if (!sound) return;
-    
-    if (isPlaying) {
-      await sound.pauseAsync();
-    } else {
-      await sound.playAsync();
-    }
-  };
-
-  // Seek to position
-  const seekTo = async (value) => {
-    if (sound) {
-      await sound.setPositionAsync(value);
-    }
-  };
-
-  // Get current song index
-  const getCurrentIndex = () => {
-    return playlist.findIndex(item => item.id === currentSong?.id);
-  };
-
-  // Play next song
-  const handleNext = () => {
-    const currentIndex = getCurrentIndex();
-    if (currentIndex < playlist.length - 1) {
-      setCurrentSong(playlist[currentIndex + 1]);
-    } else if (repeatMode === 1) {
-      // Repeat all - go to first song
-      setCurrentSong(playlist[0]);
-    }
-  };
-
-  // Play previous song
-  const handlePrevious = () => {
-    const currentIndex = getCurrentIndex();
-    if (currentIndex > 0) {
-      setCurrentSong(playlist[currentIndex - 1]);
-    } else if (repeatMode === 1) {
-      // Repeat all - go to last song
-      setCurrentSong(playlist[playlist.length - 1]);
-    }
-  };
-
-  // Toggle favorite
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-  };
-
-  // Toggle repeat mode
-  const toggleRepeat = () => {
-    setRepeatMode((prev) => (prev + 1) % 3);
-  };
+  }, [song?.id]);
 
   // Toggle playlist sheet
   const togglePlaylistSheet = () => {
@@ -175,7 +72,7 @@ const PlayScreen = ({ route, navigation }) => {
 
   // Play song from playlist
   const playSongFromPlaylist = (selectedSong) => {
-    setCurrentSong(selectedSong);
+    playSong(selectedSong, playlist);
     togglePlaylistSheet();
   };
 
@@ -256,17 +153,17 @@ const PlayScreen = ({ route, navigation }) => {
             <Feather name="menu" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         </SafeAreaView>
+      </View>
 
-        {/* Video Controls Overlay - Bottom of video */}
-        <View style={styles.videoControlsOverlay}>
-          <TouchableOpacity style={styles.videoControlButton}>
-            <MaterialCommunityIcons name="fullscreen" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.videoControlButton}>
-            <Feather name="external-link" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
+      {/* Video Controls - Below Image */}
+      <View style={styles.videoControlsRow}>
+        <TouchableOpacity style={styles.videoControlButton}>
+          <MaterialCommunityIcons name="fullscreen" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.videoControlButton}>
+          <Feather name="external-link" size={18} color={colors.textPrimary} />
+        </TouchableOpacity>
       </View>
 
       {/* Content Section */}
@@ -281,8 +178,8 @@ const PlayScreen = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
+        {/* Progress Bar - Hidden when playlist is open */}
+        {!showPlaylist && <View style={styles.progressContainer}>
           <Slider
             style={styles.progressBar}
             minimumValue={0}
@@ -297,10 +194,10 @@ const PlayScreen = ({ route, navigation }) => {
             <Text style={styles.timeText}>{formatTime(position)}</Text>
             <Text style={styles.timeText}>{formatTime(duration)}</Text>
           </View>
-        </View>
+        </View>}
 
-        {/* Main Controls */}
-        <View style={styles.controlsContainer}>
+        {/* Main Controls - Hidden when playlist is open */}
+        {!showPlaylist && <View style={styles.controlsContainer}>
           <TouchableOpacity onPress={toggleFavorite} style={styles.sideControlButton}>
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
@@ -309,7 +206,7 @@ const PlayScreen = ({ route, navigation }) => {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handlePrevious} style={styles.skipButton}>
+          <TouchableOpacity onPress={playPrevious} style={styles.skipButton}>
             <Ionicons name="play-skip-back" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
 
@@ -330,7 +227,7 @@ const PlayScreen = ({ route, navigation }) => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleNext} style={styles.skipButton}>
+          <TouchableOpacity onPress={playNext} style={styles.skipButton}>
             <Ionicons name="play-skip-forward" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
 
@@ -341,12 +238,19 @@ const PlayScreen = ({ route, navigation }) => {
               color={repeatMode > 0 ? colors.primary : colors.textPrimary}
             />
           </TouchableOpacity>
-        </View>
+        </View>}
 
-        {/* Bottom Actions */}
-        <View style={styles.bottomActions}>
+        {/* Bottom Actions - Hidden when playlist is open */}
+        {!showPlaylist && <View style={styles.bottomActions}>
           <TouchableOpacity style={styles.actionButton}>
             <Feather name="share-2" size={20} color={colors.textPrimary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => setShowAddToPlaylist(true)}
+          >
+            <Ionicons name="add-circle-outline" size={22} color={colors.textPrimary} />
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -355,7 +259,7 @@ const PlayScreen = ({ route, navigation }) => {
           >
             <Feather name="menu" size={20} color={colors.textMuted} />
           </TouchableOpacity>
-        </View>
+        </View>}
       </View>
 
       {/* Playlist Bottom Sheet */}
@@ -387,6 +291,16 @@ const PlayScreen = ({ route, navigation }) => {
           showsVerticalScrollIndicator={false}
         />
       </Animated.View>
+
+      {/* Add to Playlist Sheet */}
+      <AddToPlaylistSheet
+        visible={showAddToPlaylist}
+        song={currentSong}
+        onClose={() => setShowAddToPlaylist(false)}
+        onSuccess={(message) => {
+          Alert.alert('Success', message);
+        }}
+      />
     </View>
   );
 };
@@ -399,7 +313,7 @@ const styles = StyleSheet.create({
   
   // Video Section - Top half
   videoSection: {
-    height: SCREEN_HEIGHT * 0.52,
+    height: SCREEN_HEIGHT * 0.45,
     backgroundColor: '#000',
     position: 'relative',
   },
@@ -444,13 +358,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  videoControlsOverlay: {
-    position: 'absolute',
-    bottom: 12,
-    left: 16,
-    right: 16,
+  
+  // Video Controls Row - Below image
+  videoControlsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: colors.background,
   },
   videoControlButton: {
     width: 36,
@@ -463,7 +378,7 @@ const styles = StyleSheet.create({
   contentSection: {
     flex: 1,
     paddingHorizontal: 28,
-    paddingTop: 28,
+    paddingTop: 16,
   },
   songInfoContainer: {
     alignItems: 'center',

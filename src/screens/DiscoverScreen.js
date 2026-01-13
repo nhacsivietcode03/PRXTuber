@@ -1,4 +1,4 @@
-// DiscoverScreen - Display all playlists/discover items
+// DiscoverScreen - Display artists grid for discovery (Figma design)
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -10,6 +10,7 @@ import {
   Image,
   Dimensions,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,76 +18,107 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { BottomNavBar } from '../components';
 import colors from '../theme/colors';
-import { getPlaylists } from '../api/musicService';
+import { getArtists } from '../api/musicService';
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = (width - 48) / 2; // 2 columns with padding
+const COLUMN_COUNT = 3;
+const ITEM_SPACING = 16;
+const ITEM_WIDTH = (width - (ITEM_SPACING * (COLUMN_COUNT + 1))) / COLUMN_COUNT;
 
 const DiscoverScreen = ({ navigation }) => {
-  const [playlists, setPlaylists] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('home');
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('discover');
 
-  // Fetch all playlists
-  const fetchPlaylists = useCallback(async () => {
+  // Fetch artists
+  const fetchArtists = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getPlaylists(20); // Fetch more playlists
-      setPlaylists(data);
+      const data = await getArtists(30); // Fetch 30 artists for grid
+      setArtists(data);
     } catch (error) {
-      console.error('Error fetching playlists:', error);
-      Alert.alert('Error', 'Could not load playlists. Please try again.');
+      console.error('Error fetching artists:', error);
+      Alert.alert('Error', 'Could not load artists. Please try again.');
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchArtists();
+    setRefreshing(false);
+  }, [fetchArtists]);
+
   useEffect(() => {
-    fetchPlaylists();
-  }, [fetchPlaylists]);
+    fetchArtists();
+  }, [fetchArtists]);
 
   // Handlers
   const handleBack = () => {
     navigation.goBack();
   };
 
-  const handlePlaylistPress = (playlist) => {
+  const handleArtistPress = (artist) => {
+    // Navigate to artist detail with their tracks
     navigation.navigate('TopicDetail', {
       topic: {
-        id: playlist.id,
-        title: playlist.title,
-        image: playlist.image,
-        genre: playlist.genre || null,
+        id: artist.id,
+        title: artist.name,
+        image: artist.image,
+        isArtist: true,
       }
     });
+  };
+
+  const handleSearch = () => {
+    navigation.navigate('Search');
   };
 
   const handleTabPress = (tabId) => {
     setActiveTab(tabId);
     if (tabId === 'home') {
-      navigation.goBack();
+      navigation.navigate('Home');
+    } else if (tabId === 'search') {
+      navigation.navigate('Search');
     }
   };
 
-  const renderPlaylistItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.playlistItem}
-      onPress={() => handlePlaylistPress(item)}
-      activeOpacity={0.7}
-    >
-      <Image 
-        source={{ uri: item.image || 'https://via.placeholder.com/150' }}
-        style={styles.playlistImage}
-        resizeMode="cover"
-      />
-      <Text style={styles.playlistTitle} numberOfLines={1}>
-        {item.title}
-      </Text>
-      <Text style={styles.trackCount}>
-        {item.trackCount || 0} tracks
-      </Text>
-    </TouchableOpacity>
-  );
+  // Background colors for artist cards
+  const bgColors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
+    '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+    '#BB8FCE', '#85C1E9', '#F8B500', '#00CED1',
+  ];
+
+  const defaultArtistImage = 'https://via.placeholder.com/200/333333/02CDAC?text=Artist';
+
+  const renderArtistItem = ({ item, index }) => {
+    const bgColor = bgColors[index % bgColors.length];
+    const imageUri = item.image && item.image.trim() !== '' ? item.image : defaultArtistImage;
+
+    return (
+      <TouchableOpacity 
+        style={styles.artistItem}
+        onPress={() => handleArtistPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.artistImageContainer, { backgroundColor: bgColor }]}>
+          <Image 
+            source={{ uri: imageUri }}
+            style={styles.artistImage}
+            resizeMode="cover"
+            defaultSource={{ uri: defaultArtistImage }}
+          />
+        </View>
+        <Text style={styles.artistName} numberOfLines={1}>
+          {item.name}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -102,26 +134,48 @@ const DiscoverScreen = ({ navigation }) => {
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Discover</Text>
-          <View style={styles.placeholder} />
+          <TouchableOpacity 
+            style={styles.searchButton}
+            onPress={handleSearch}
+          >
+            <Ionicons name="search" size={20} color={colors.textPrimary} />
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
 
-      {/* Playlists Grid */}
+      {/* Artists Grid */}
       {loading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading artists...</Text>
         </View>
       ) : (
         <FlatList
-          data={playlists}
-          renderItem={renderPlaylistItem}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
+          data={artists}
+          renderItem={renderArtistItem}
+          keyExtractor={(item) => item.id?.toString()}
+          numColumns={COLUMN_COUNT}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.row}
-          bounces={false}
-          overScrollMode="never"
+          bounces={true}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="musical-notes" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyText}>No artists found</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchArtists}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          }
         />
       )}
 
@@ -162,41 +216,79 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  placeholder: {
+  searchButton: {
     width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 100, // Space for BottomNavBar
+    paddingHorizontal: ITEM_SPACING,
+    paddingBottom: 100,
   },
   row: {
-    justifyContent: 'space-between',
-    marginBottom: 20,
+    justifyContent: 'flex-start',
+    gap: ITEM_SPACING,
+    marginBottom: ITEM_SPACING,
   },
-  playlistItem: {
+  artistItem: {
     width: ITEM_WIDTH,
+    alignItems: 'center',
   },
-  playlistImage: {
+  artistImageContainer: {
     width: ITEM_WIDTH,
     height: ITEM_WIDTH,
     borderRadius: 8,
-    backgroundColor: colors.backgroundCard,
+    overflow: 'hidden',
     marginBottom: 8,
   },
-  playlistTitle: {
+  artistImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  artistName: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    width: '100%',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 80,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: 12,
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: colors.primary,
+    borderRadius: 20,
+  },
+  retryText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  trackCount: {
-    fontSize: 12,
-    color: colors.textSecondary,
   },
 });
 

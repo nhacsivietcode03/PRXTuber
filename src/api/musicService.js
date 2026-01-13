@@ -298,13 +298,19 @@ export async function getArtists(limit = 20) {
         limit,
         order: 'popularity_total',
         imagesize: 200,
+        hasimage: 'true', // Only get artists with images
       },
     });
+    
+    const defaultImage = 'https://via.placeholder.com/200/333333/02CDAC?text=Artist';
     
     return data?.results?.map(artist => ({
       id: artist.id,
       name: artist.name,
-      image: artist.image || 'https://via.placeholder.com/200',
+      // Check for empty string, null, undefined, or placeholder URLs
+      image: (artist.image && artist.image.trim() !== '' && !artist.image.includes('default')) 
+        ? artist.image 
+        : defaultImage,
       website: artist.website,
       joindate: artist.joindate,
     })) ?? [];

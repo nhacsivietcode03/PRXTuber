@@ -9,6 +9,9 @@ import TopSongsScreen from '../screens/TopSongsScreen';
 import DiscoverScreen from '../screens/DiscoverScreen';
 import SearchScreen from '../screens/SearchScreen';
 import PlayScreen from '../screens/PlayScreen';
+import FavoritesScreen from '../screens/FavoritesScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import PlaylistDetailScreen from '../screens/PlaylistDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +29,9 @@ const AppNavigator = () => {
         <Stack.Screen name="TopSongs" component={TopSongsScreen} />
         <Stack.Screen name="Discover" component={DiscoverScreen} />
         <Stack.Screen name="Search" component={SearchScreen} />
+        <Stack.Screen name="Favorites" component={FavoritesScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
         <Stack.Screen 
           name="Play" 
           component={PlayScreen}

@@ -13,19 +13,21 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SongItem, NowPlayingBar, BottomNavBar, SongBottomSheet } from '../components';
+import { SongItem, NowPlayingBar, BottomNavBar, SongBottomSheet, AddToPlaylistSheet } from '../components';
 import colors from '../theme/colors';
 import { getTopTracks } from '../api/musicService';
+import { useMusicPlayer } from '../context';
 
 const TopSongsScreen = ({ navigation }) => {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentSong, setCurrentSong] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentPlayingId, setCurrentPlayingId] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
   const [selectedSong, setSelectedSong] = useState(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+
+  // Use global music player context
+  const { currentSong, playSong } = useMusicPlayer();
 
   // Fetch all top songs
   const fetchSongs = useCallback(async () => {
@@ -51,15 +53,8 @@ const TopSongsScreen = ({ navigation }) => {
   };
 
   const handleSongPress = (song, index) => {
-    setCurrentSong(song);
-    setCurrentPlayingId(song.id);
-    setIsPlaying(true);
-    // Navigate to PlayScreen
+    // Navigate to PlayScreen - context will handle playback
     navigation.navigate('Play', { song, playlist: songs });
-  };
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
   };
 
   const handleNowPlayingPress = () => {
@@ -83,14 +78,19 @@ const TopSongsScreen = ({ navigation }) => {
 
   const handleBottomSheetPlay = () => {
     if (selectedSong) {
-      setCurrentSong(selectedSong);
-      setCurrentPlayingId(selectedSong.id);
-      setIsPlaying(true);
+      playSong(selectedSong, songs);
     }
   };
 
   const handleAddToPlaylist = () => {
-    Alert.alert('Add to Playlist', `"${selectedSong?.title}" will be added to playlist.\n\nFeature coming soon!`);
+    setShowBottomSheet(false);
+    setTimeout(() => {
+      setShowAddToPlaylist(true);
+    }, 300);
+  };
+
+  const handleAddToPlaylistSuccess = (message) => {
+    Alert.alert('Success', message);
   };
 
   const handleAddToFavorites = () => {
@@ -115,8 +115,8 @@ const TopSongsScreen = ({ navigation }) => {
       artist={item.artist}
       image={item.image}
       song={item}
-      isPlaying={item.id === currentPlayingId}
-      isCurrentSong={item.id === currentPlayingId}
+      isPlaying={item.id === currentSong?.id}
+      isCurrentSong={item.id === currentSong?.id}
       onPress={() => handleSongPress(item, index)}
       onMorePress={() => handleMorePress(item)}
     />
@@ -158,14 +158,9 @@ const TopSongsScreen = ({ navigation }) => {
       )}
 
       {/* Now Playing Bar */}
-      {currentSong && (
-        <NowPlayingBar
-          song={currentSong}
-          isPlaying={isPlaying}
-          onPlayPause={handlePlayPause}
-          onPress={handleNowPlayingPress}
-        />
-      )}
+      <NowPlayingBar
+        onPress={handleNowPlayingPress}
+      />
 
       {/* Bottom Navigation */}
       <BottomNavBar
@@ -182,6 +177,14 @@ const TopSongsScreen = ({ navigation }) => {
         onAddToPlaylist={handleAddToPlaylist}
         onAddToFavorites={handleAddToFavorites}
         onShare={handleShare}
+      />
+
+      {/* Add to Playlist Sheet */}
+      <AddToPlaylistSheet
+        visible={showAddToPlaylist}
+        song={selectedSong}
+        onClose={() => setShowAddToPlaylist(false)}
+        onSuccess={handleAddToPlaylistSuccess}
       />
     </View>
   );

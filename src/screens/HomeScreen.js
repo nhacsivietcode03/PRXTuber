@@ -18,9 +18,11 @@ import {
   NowPlayingBar,
   BottomNavBar,
   SongBottomSheet,
+  AddToPlaylistSheet,
 } from '../components';
 import colors from '../theme/colors';
 import { getTopTracks, getHotTracks, getPlaylists } from '../api/musicService';
+import { useMusicPlayer } from '../context';
 
 const HomeScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('home');
@@ -29,11 +31,18 @@ const HomeScreen = ({ navigation }) => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [currentPlayingId, setCurrentPlayingId] = useState(null);
-  const [currentSong, setCurrentSong] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [selectedSong, setSelectedSong] = useState(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+
+  // Use global music player context
+  const { 
+    currentSong, 
+    isPlaying, 
+    playSong, 
+    togglePlayPause,
+    progress,
+  } = useMusicPlayer();
 
   // Fetch data from Jamendo API
   const fetchData = useCallback(async () => {
@@ -115,15 +124,12 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleSongPress = (song, index) => {
-    setCurrentPlayingId(song.id);
-    setCurrentSong(song);
-    setIsPlaying(true);
-    // Navigate to PlayScreen
+    // Navigate to PlayScreen - context will handle playback
     navigation.navigate('Play', { song, playlist: songs });
   };
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    togglePlayPause();
   };
 
   const handleNowPlayingPress = () => {
@@ -147,14 +153,19 @@ const HomeScreen = ({ navigation }) => {
 
   const handleBottomSheetPlay = () => {
     if (selectedSong) {
-      setCurrentSong(selectedSong);
-      setCurrentPlayingId(selectedSong.id);
-      setIsPlaying(true);
+      playSong(selectedSong, songs);
     }
   };
 
   const handleAddToPlaylist = () => {
-    Alert.alert('Add to Playlist', `"${selectedSong?.title}" will be added to playlist.\n\nFeature coming soon!`);
+    setShowBottomSheet(false);
+    setTimeout(() => {
+      setShowAddToPlaylist(true);
+    }, 300);
+  };
+
+  const handleAddToPlaylistSuccess = (message) => {
+    Alert.alert('Success', message);
   };
 
   const handleAddToFavorites = () => {
@@ -167,8 +178,14 @@ const HomeScreen = ({ navigation }) => {
 
   const handleTabPress = (tabId) => {
     setActiveTab(tabId);
-    if (tabId !== 'home') {
-      Alert.alert('Navigation', `Navigate to ${tabId} screen`);
+    if (tabId === 'discover') {
+      navigation.navigate('Discover');
+    } else if (tabId === 'search') {
+      navigation.navigate('Search');
+    } else if (tabId === 'favorites') {
+      navigation.navigate('Favorites');
+    } else if (tabId === 'settings') {
+      navigation.navigate('Settings');
     }
   };
 
@@ -207,7 +224,7 @@ const HomeScreen = ({ navigation }) => {
         {/* Top Songs Section */}
         <TopSongs
           songs={songs}
-          currentPlayingId={currentPlayingId}
+          currentPlayingId={currentSong?.id}
           onSongPress={handleSongPress}
           onMorePress={handleMorePress}
           onSeeAllPress={handleSeeAllTopSongs}
@@ -228,14 +245,9 @@ const HomeScreen = ({ navigation }) => {
       </ScrollView>
 
       {/* Now Playing Bar */}
-      {currentSong && (
-        <NowPlayingBar
-          song={currentSong}
-          isPlaying={isPlaying}
-          onPlayPause={handlePlayPause}
-          onPress={handleNowPlayingPress}
-        />
-      )}
+      <NowPlayingBar
+        onPress={handleNowPlayingPress}
+      />
 
       {/* Bottom Navigation */}
       <BottomNavBar
@@ -252,6 +264,14 @@ const HomeScreen = ({ navigation }) => {
         onAddToPlaylist={handleAddToPlaylist}
         onAddToFavorites={handleAddToFavorites}
         onShare={handleShare}
+      />
+
+      {/* Add to Playlist Sheet */}
+      <AddToPlaylistSheet
+        visible={showAddToPlaylist}
+        song={selectedSong}
+        onClose={() => setShowAddToPlaylist(false)}
+        onSuccess={handleAddToPlaylistSuccess}
       />
     </SafeAreaView>
   );

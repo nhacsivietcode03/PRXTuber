@@ -15,21 +15,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SongItem, NowPlayingBar, BottomNavBar, SongBottomSheet } from '../components';
+import { SongItem, NowPlayingBar, BottomNavBar, SongBottomSheet, AddToPlaylistSheet } from '../components';
 import colors from '../theme/colors';
 import { getTracksByGenre, getTopTracks, getTracksByArtist } from '../api/musicService';
+import { useMusicPlayer } from '../context';
 
 const TopicDetailScreen = ({ route, navigation }) => {
   const { topic } = route.params || {};
   
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentSong, setCurrentSong] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentPlayingId, setCurrentPlayingId] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
   const [selectedSong, setSelectedSong] = useState(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+
+  // Use global music player context
+  const { currentSong, playSong } = useMusicPlayer();
 
   // Fetch songs for this topic
   const fetchSongs = useCallback(async () => {
@@ -37,7 +39,10 @@ const TopicDetailScreen = ({ route, navigation }) => {
       setLoading(true);
       let tracks;
       
-      if (topic?.genre) {
+      if (topic?.isArtist && topic?.id) {
+        // Fetch by artist ID (from Discover screen)
+        tracks = await getTracksByArtist(topic.id, 20);
+      } else if (topic?.genre) {
         // Fetch by genre/tag
         tracks = await getTracksByGenre(topic.genre, 20);
       } else if (topic?.artistId) {
@@ -54,7 +59,7 @@ const TopicDetailScreen = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
-  }, [topic?.genre, topic?.artistId]);
+  }, [topic?.genre, topic?.artistId, topic?.isArtist, topic?.id]);
 
   useEffect(() => {
     fetchSongs();
@@ -67,22 +72,13 @@ const TopicDetailScreen = ({ route, navigation }) => {
 
   const handlePlayAll = () => {
     if (songs.length > 0) {
-      setCurrentSong(songs[0]);
-      setCurrentPlayingId(songs[0].id);
-      setIsPlaying(true);
+      playSong(songs[0], songs);
     }
   };
 
   const handleSongPress = (song, index) => {
-    setCurrentSong(song);
-    setCurrentPlayingId(song.id);
-    setIsPlaying(true);
-    // Navigate to PlayScreen
+    // Navigate to PlayScreen - context will handle playback
     navigation.navigate('Play', { song, playlist: songs });
-  };
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
   };
 
   const handleNowPlayingPress = () => {
@@ -117,14 +113,19 @@ const TopicDetailScreen = ({ route, navigation }) => {
 
   const handleBottomSheetPlay = () => {
     if (selectedSong) {
-      setCurrentSong(selectedSong);
-      setCurrentPlayingId(selectedSong.id);
-      setIsPlaying(true);
+      playSong(selectedSong, songs);
     }
   };
 
   const handleAddToPlaylist = () => {
-    Alert.alert('Add to Playlist', `"${selectedSong?.title}" will be added to playlist.\n\nFeature coming soon!`);
+    setShowBottomSheet(false);
+    setTimeout(() => {
+      setShowAddToPlaylist(true);
+    }, 300);
+  };
+
+  const handleAddToPlaylistSuccess = (message) => {
+    Alert.alert('Success', message);
   };
 
   const handleAddToFavorites = () => {
@@ -213,8 +214,8 @@ const TopicDetailScreen = ({ route, navigation }) => {
                 artist={song.artist}
                 image={song.image}
                 song={song}
-                isPlaying={song.id === currentPlayingId}
-                isCurrentSong={song.id === currentPlayingId}
+                isPlaying={song.id === currentSong?.id}
+                isCurrentSong={song.id === currentSong?.id}
                 onPress={() => handleSongPress(song, index)}
                 onMorePress={handleMorePress}
               />
@@ -227,14 +228,9 @@ const TopicDetailScreen = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Now Playing Bar */}
-      {currentSong && (
-        <NowPlayingBar
-          song={currentSong}
-          isPlaying={isPlaying}
-          onPlayPause={handlePlayPause}
-          onPress={handleNowPlayingPress}
-        />
-      )}
+      <NowPlayingBar
+        onPress={handleNowPlayingPress}
+      />
 
       {/* Bottom Navigation */}
       <BottomNavBar
@@ -251,6 +247,14 @@ const TopicDetailScreen = ({ route, navigation }) => {
         onAddToPlaylist={handleAddToPlaylist}
         onAddToFavorites={handleAddToFavorites}
         onShare={handleShare}
+      />
+
+      {/* Add to Playlist Sheet */}
+      <AddToPlaylistSheet
+        visible={showAddToPlaylist}
+        song={selectedSong}
+        onClose={() => setShowAddToPlaylist(false)}
+        onSuccess={handleAddToPlaylistSuccess}
       />
     </View>
   );

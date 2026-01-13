@@ -10,3 +10,5 @@ export { default as Discover } from './Discover';
 export { default as NowPlayingBar } from './NowPlayingBar';
 export { default as BottomNavBar } from './BottomNavBar';
 export { default as SongBottomSheet } from './SongBottomSheet';
+export { default as AddToPlaylistSheet } from './AddToPlaylistSheet';
+export { default as CreatePlaylistModal } from './CreatePlaylistModal';

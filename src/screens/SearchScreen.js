@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
   Keyboard,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,14 +19,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import colors from '../theme/colors';
 import { searchTracks } from '../api/musicService';
+import { SongBottomSheet, AddToPlaylistSheet } from '../components';
+import { useMusicPlayer } from '../context';
 
-const SearchScreen = ({ navigation }) => {
+const SearchScreen = ({ route, navigation }) => {
+  const { addToPlaylist } = route.params || {};
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedSong, setSelectedSong] = useState(null);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const searchInputRef = useRef(null);
   const searchTimeout = useRef(null);
+
+  const { playSong } = useMusicPlayer();
 
   // Format duration from seconds to mm:ss
   const formatDuration = (seconds) => {
@@ -68,7 +78,50 @@ const SearchScreen = ({ navigation }) => {
 
   // Handle song press - navigate to Play screen
   const handleSongPress = (song) => {
+    // If we're in "add to playlist" mode, add the song directly
+    if (addToPlaylist) {
+      setSelectedSong(song);
+      setShowAddToPlaylist(true);
+      return;
+    }
     navigation.navigate('Play', { song, playlist: searchResults });
+  };
+
+  // Handle more press on song item
+  const handleMorePress = (song) => {
+    setSelectedSong(song);
+    setShowBottomSheet(true);
+  };
+
+  const handleCloseBottomSheet = () => {
+    setShowBottomSheet(false);
+    setSelectedSong(null);
+  };
+
+  const handleBottomSheetPlay = () => {
+    if (selectedSong) {
+      playSong(selectedSong, searchResults);
+      setShowBottomSheet(false);
+    }
+  };
+
+  const handleAddToPlaylist = () => {
+    setShowBottomSheet(false);
+    setTimeout(() => {
+      setShowAddToPlaylist(true);
+    }, 300);
+  };
+
+  const handleAddToPlaylistSuccess = (message) => {
+    Alert.alert('Success', message);
+  };
+
+  const handleAddToFavorites = () => {
+    Alert.alert('Success', `"${selectedSong?.title}" added to favorites!`);
+  };
+
+  const handleShare = () => {
+    Alert.alert('Share', `Share "${selectedSong?.title}" - Coming soon!`);
   };
 
   // Clear search
@@ -98,7 +151,7 @@ const SearchScreen = ({ navigation }) => {
           {item.artist}
         </Text>
       </View>
-      <TouchableOpacity style={styles.moreButton}>
+      <TouchableOpacity style={styles.moreButton} onPress={() => handleMorePress(item)}>
         <Ionicons name="ellipsis-vertical" size={16} color={colors.textSecondary} />
       </TouchableOpacity>
     </TouchableOpacity>
@@ -215,6 +268,25 @@ const SearchScreen = ({ navigation }) => {
       <LinearGradient
         colors={['transparent', colors.background]}
         style={styles.bottomGradient}
+      />
+
+      {/* Song Bottom Sheet */}
+      <SongBottomSheet
+        visible={showBottomSheet}
+        song={selectedSong}
+        onClose={handleCloseBottomSheet}
+        onPlay={handleBottomSheetPlay}
+        onAddToPlaylist={handleAddToPlaylist}
+        onAddToFavorites={handleAddToFavorites}
+        onShare={handleShare}
+      />
+
+      {/* Add to Playlist Sheet */}
+      <AddToPlaylistSheet
+        visible={showAddToPlaylist}
+        song={selectedSong}
+        onClose={() => setShowAddToPlaylist(false)}
+        onSuccess={handleAddToPlaylistSuccess}
       />
     </SafeAreaView>
   );

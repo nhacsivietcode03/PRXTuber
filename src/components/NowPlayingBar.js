@@ -1,5 +1,5 @@
-// NowPlayingBar - Mini player with audio playback and progress bar
-import React, { useEffect, useRef, useState } from 'react';
+// NowPlayingBar - Mini player synced with global music player context
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -7,96 +7,21 @@ import {
   TouchableOpacity, 
   StyleSheet,
 } from 'react-native';
-import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../theme/colors';
+import { useMusicPlayer } from '../context';
 
 const NowPlayingBar = ({ 
-  song,
-  isPlaying = false,
-  onPlayPause,
   onPress,
-  onPlaybackStatusUpdate,
 }) => {
-  const soundRef = useRef(null);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [position, setPosition] = useState(0);
+  const { 
+    currentSong, 
+    isPlaying, 
+    progress, 
+    togglePlayPause 
+  } = useMusicPlayer();
 
-  // Load and play audio when song changes
-  useEffect(() => {
-    if (song?.audio) {
-      loadAudio();
-    }
-    
-    return () => {
-      // Cleanup: unload sound when component unmounts or song changes
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-      }
-    };
-  }, [song?.id]);
-
-  // Play/pause based on isPlaying prop
-  useEffect(() => {
-    if (soundRef.current) {
-      if (isPlaying) {
-        soundRef.current.playAsync();
-      } else {
-        soundRef.current.pauseAsync();
-      }
-    }
-  }, [isPlaying]);
-
-  const loadAudio = async () => {
-    try {
-      // Unload previous sound
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-      }
-
-      // Configure audio mode
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: true,
-      });
-
-      // Load new sound
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: song.audio },
-        { shouldPlay: isPlaying },
-        onPlaybackStatus
-      );
-      
-      soundRef.current = sound;
-    } catch (error) {
-      console.error('Error loading audio:', error);
-    }
-  };
-
-  const onPlaybackStatus = (status) => {
-    if (status.isLoaded) {
-      setDuration(status.durationMillis || 0);
-      setPosition(status.positionMillis || 0);
-      
-      if (status.durationMillis > 0) {
-        const progressPercent = (status.positionMillis / status.durationMillis) * 100;
-        setProgress(progressPercent);
-      }
-
-      // Notify parent about playback status
-      onPlaybackStatusUpdate?.(status);
-
-      // Auto-pause when finished
-      if (status.didJustFinish && !status.isLooping) {
-        setProgress(0);
-        onPlayPause?.(); // Toggle to paused state
-      }
-    }
-  };
-
-  if (!song) return null;
+  if (!currentSong) return null;
 
   return (
     <TouchableOpacity 
@@ -111,17 +36,17 @@ const NowPlayingBar = ({
 
       <View style={styles.content}>
         <Image 
-          source={{ uri: song.image }}
+          source={{ uri: currentSong.image }}
           style={styles.thumbnail}
           resizeMode="cover"
         />
         
         <View style={styles.info}>
           <Text style={styles.title} numberOfLines={1}>
-            {song.title}
+            {currentSong.title}
           </Text>
           <Text style={styles.artist} numberOfLines={1}>
-            {song.artist}
+            {currentSong.artist}
           </Text>
         </View>
         
@@ -129,7 +54,7 @@ const NowPlayingBar = ({
           style={styles.playButton}
           onPress={(e) => {
             e.stopPropagation();
-            onPlayPause?.();
+            togglePlayPause();
           }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
