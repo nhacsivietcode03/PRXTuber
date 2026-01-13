@@ -33,24 +33,28 @@ const TopicDetailScreen = ({ route, navigation }) => {
   // Use global music player context
   const { currentSong, playSong } = useMusicPlayer();
 
-  // Fetch songs for this topic
+  // Fetch songs for this topic - API will return actual count available
   const fetchSongs = useCallback(async () => {
     try {
       setLoading(true);
       let tracks;
       
+      // Use higher limit (100) to get more songs from API
+      // Jamendo API will return available songs up to the limit
+      const SONG_LIMIT = 100;
+      
       if (topic?.isArtist && topic?.id) {
         // Fetch by artist ID (from Discover screen)
-        tracks = await getTracksByArtist(topic.id, 20);
+        tracks = await getTracksByArtist(topic.id, SONG_LIMIT);
       } else if (topic?.genre) {
         // Fetch by genre/tag
-        tracks = await getTracksByGenre(topic.genre, 20);
+        tracks = await getTracksByGenre(topic.genre, SONG_LIMIT);
       } else if (topic?.artistId) {
         // Fetch by artist ID (for hot topics from specific artist)
-        tracks = await getTracksByArtist(topic.artistId, 20);
+        tracks = await getTracksByArtist(topic.artistId, SONG_LIMIT);
       } else {
         // Fallback to top tracks
-        tracks = await getTopTracks(20);
+        tracks = await getTopTracks(SONG_LIMIT);
       }
       
       setSongs(tracks);

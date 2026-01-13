@@ -180,10 +180,10 @@ export function getGenres() {
 /**
  * Get tracks by genre/tag
  * @param {string} genre - Genre tag (e.g., 'rock', 'pop', 'electronic')
- * @param {number} limit - Number of tracks
+ * @param {number} limit - Number of tracks (default 50 for better results)
  * @param {string} order - Order by popularity
  */
-export async function getTracksByGenre(genre, limit = 20, order = 'popularity_total') {
+export async function getTracksByGenre(genre, limit = 50, order = 'popularity_total') {
   try {
     const { data } = await jamendoClient.get('/tracks', {
       params: {
@@ -323,9 +323,9 @@ export async function getArtists(limit = 20) {
 /**
  * Get tracks by artist ID
  * @param {string|number} artistId - Artist ID
- * @param {number} limit - Number of tracks
+ * @param {number} limit - Number of tracks (default 50 for better results)
  */
-export async function getTracksByArtist(artistId, limit = 20) {
+export async function getTracksByArtist(artistId, limit = 50) {
   try {
     const { data } = await jamendoClient.get('/tracks', {
       params: {
