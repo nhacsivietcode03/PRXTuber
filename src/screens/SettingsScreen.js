@@ -1,34 +1,31 @@
-// SettingsScreen - App settings and user preferences
-import React, { useState } from 'react';
+// SettingsScreen - App settings (matching Figma design)
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Switch,
   Alert,
   Linking,
+  ScrollView,
+  Animated,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 
 import { BottomNavBar } from '../components';
 import colors from '../theme/colors';
 
 const SettingsScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('settings');
-  
-  // Settings state
-  const [autoPlay, setAutoPlay] = useState(true);
-  const [notifications, setNotifications] = useState(true);
-  const [highQuality, setHighQuality] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
+  const [streamQuality, setStreamQuality] = useState('Normal');
+  const [lightMode, setLightMode] = useState(false);
+  const [selectedHour, setSelectedHour] = useState(6);
+  const [selectedMinute, setSelectedMinute] = useState(0);
 
-  const handleBack = () => {
-    navigation.goBack();
-  };
+  const hours = [4, 5, 6, 7, 8];
+  const minutes = [58, 59, 0, 1, 2];
 
   const handleTabPress = (tabId) => {
     setActiveTab(tabId);
@@ -43,10 +40,39 @@ const SettingsScreen = ({ navigation }) => {
     }
   };
 
-  const handleAbout = () => {
+  const handleStreamQuality = () => {
     Alert.alert(
-      'About PRX Tuber',
-      'Version 1.0.0\n\nA music streaming app powered by Jamendo API.\n\nBuilt with React Native & Expo.',
+      'Stream Quality',
+      'Select streaming quality:',
+      [
+        { text: 'Low', onPress: () => setStreamQuality('Low') },
+        { text: 'Normal', onPress: () => setStreamQuality('Normal') },
+        { text: 'High', onPress: () => setStreamQuality('High') },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleLightMode = () => {
+    setLightMode(!lightMode);
+    Alert.alert('Theme', lightMode ? 'Dark mode enabled' : 'Light mode is not available yet');
+  };
+
+  const handleRateApp = () => {
+    Alert.alert(
+      'Rate PRX Tuber',
+      'Thank you for using our app! Would you like to rate us?',
+      [
+        { text: 'Later', style: 'cancel' },
+        { text: 'Rate Now', onPress: () => Linking.openURL('https://play.google.com/store') },
+      ]
+    );
+  };
+
+  const handleContactUs = () => {
+    Alert.alert(
+      'Contact Us',
+      'Email: support@prxtuber.com\n\nWe typically respond within 24 hours.',
       [{ text: 'OK' }]
     );
   };
@@ -55,59 +81,43 @@ const SettingsScreen = ({ navigation }) => {
     Linking.openURL('https://www.jamendo.com/legal/privacy');
   };
 
-  const handleTermsOfService = () => {
-    Linking.openURL('https://www.jamendo.com/legal/terms');
-  };
-
-  const handleClearCache = () => {
+  const handleStartSleepTimer = () => {
+    const totalMinutes = selectedHour * 60 + selectedMinute;
     Alert.alert(
-      'Clear Cache',
-      'Are you sure you want to clear the app cache?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Clear', 
-          style: 'destructive',
-          onPress: () => Alert.alert('Success', 'Cache cleared successfully!')
-        },
-      ]
-    );
-  };
-
-  const handleContactSupport = () => {
-    Alert.alert(
-      'Contact Support',
-      'Email: support@prxtuber.com\n\nWe typically respond within 24 hours.',
+      'Sleep Timer',
+      `Sleep timer set for ${selectedHour}h ${selectedMinute.toString().padStart(2, '0')}m\n\nMusic will stop after ${totalMinutes} minutes.`,
       [{ text: 'OK' }]
     );
   };
 
-  const renderSettingItem = ({ icon, title, subtitle, onPress, rightComponent }) => (
+  const renderSettingItem = ({ icon, IconComponent = Ionicons, title, value, onPress }) => (
     <TouchableOpacity 
       style={styles.settingItem}
       onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
+      activeOpacity={0.7}
     >
-      <View style={styles.settingIcon}>
-        <Ionicons name={icon} size={22} color={colors.primary} />
-      </View>
-      <View style={styles.settingInfo}>
+      <View style={styles.settingLeft}>
+        <View style={styles.iconContainer}>
+          <IconComponent name={icon} size={20} color={colors.textPrimary} />
+        </View>
         <Text style={styles.settingTitle}>{title}</Text>
-        {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
       </View>
-      {rightComponent || (onPress && (
-        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-      ))}
+      {value && (
+        <Text style={styles.settingValue}>{value}</Text>
+      )}
     </TouchableOpacity>
   );
 
-  const renderSwitch = (value, onValueChange) => (
-    <Switch
-      value={value}
-      onValueChange={onValueChange}
-      trackColor={{ false: colors.backgroundCard, true: colors.primary }}
-      thumbColor={colors.textPrimary}
-    />
+  const renderTimePickerItem = (value, isSelected, onPress, isHour = true) => (
+    <TouchableOpacity
+      style={[styles.timeItem, isSelected && styles.timeItemSelected]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <Text style={[styles.timeText, isSelected && styles.timeTextSelected]}>
+        {isHour ? `${value.toString().padStart(2, '0')} h` : `${value.toString().padStart(2, '0')} m`}
+      </Text>
+    </TouchableOpacity>
   );
 
   return (
@@ -117,14 +127,7 @@ const SettingsScreen = ({ navigation }) => {
       {/* Header */}
       <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={handleBack}
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <View style={styles.placeholder} />
+          <Text style={styles.headerTitle}>Setting</Text>
         </View>
       </SafeAreaView>
 
@@ -133,94 +136,121 @@ const SettingsScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Playback Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Playback</Text>
-          
+        {/* Settings Items */}
+        <View style={styles.settingsContainer}>
           {renderSettingItem({
-            icon: 'play-circle',
-            title: 'Auto-Play',
-            subtitle: 'Play next song automatically',
-            rightComponent: renderSwitch(autoPlay, setAutoPlay),
+            icon: 'play',
+            IconComponent: Ionicons,
+            title: 'Stream quality',
+            value: streamQuality,
+            onPress: handleStreamQuality,
           })}
-          
-          {renderSettingItem({
-            icon: 'musical-note',
-            title: 'High Quality Audio',
-            subtitle: 'Uses more data',
-            rightComponent: renderSwitch(highQuality, setHighQuality),
-          })}
-        </View>
 
-        {/* Appearance Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
-          
           {renderSettingItem({
-            icon: 'moon',
-            title: 'Dark Mode',
-            subtitle: 'Always on',
-            rightComponent: renderSwitch(darkMode, setDarkMode),
+            icon: 'sunny-outline',
+            IconComponent: Ionicons,
+            title: 'Light mode',
+            value: lightMode ? 'On' : 'Off',
+            onPress: handleLightMode,
           })}
-        </View>
 
-        {/* Notifications Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          
           {renderSettingItem({
-            icon: 'notifications',
-            title: 'Push Notifications',
-            subtitle: 'Get updates about new music',
-            rightComponent: renderSwitch(notifications, setNotifications),
+            icon: 'star',
+            IconComponent: Ionicons,
+            title: 'Rate this app',
+            onPress: handleRateApp,
           })}
-        </View>
 
-        {/* Storage Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Storage</Text>
-          
-          {renderSettingItem({
-            icon: 'trash',
-            title: 'Clear Cache',
-            subtitle: 'Free up space',
-            onPress: handleClearCache,
-          })}
-        </View>
-
-        {/* About Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          
-          {renderSettingItem({
-            icon: 'information-circle',
-            title: 'About PRX Tuber',
-            onPress: handleAbout,
-          })}
-          
-          {renderSettingItem({
-            icon: 'shield-checkmark',
-            title: 'Privacy Policy',
-            onPress: handlePrivacyPolicy,
-          })}
-          
-          {renderSettingItem({
-            icon: 'document-text',
-            title: 'Terms of Service',
-            onPress: handleTermsOfService,
-          })}
-          
           {renderSettingItem({
             icon: 'mail',
-            title: 'Contact Support',
-            onPress: handleContactSupport,
+            IconComponent: Ionicons,
+            title: 'Contact us',
+            onPress: handleContactUs,
+          })}
+
+          {renderSettingItem({
+            icon: 'information-circle',
+            IconComponent: Ionicons,
+            title: 'Privacy policy',
+            onPress: handlePrivacyPolicy,
           })}
         </View>
 
-        {/* App Version */}
-        <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>PRX Tuber v1.0.0</Text>
-          <Text style={styles.copyrightText}>© 2026 PRX Tuber. All rights reserved.</Text>
+        {/* Sleep Timer Section */}
+        <View style={styles.sleepTimerContainer}>
+          <View style={styles.sleepTimerHeader}>
+            <Ionicons name="time-outline" size={20} color={colors.textPrimary} />
+            <Text style={styles.sleepTimerTitle}>Sleep timer</Text>
+          </View>
+
+          {/* Time Picker */}
+          <View style={styles.timePickerContainer}>
+            {/* Hours Column */}
+            <View style={styles.timeColumn}>
+              {hours.map((hour) => (
+                <TouchableOpacity
+                  key={`hour-${hour}`}
+                  style={[
+                    styles.timeItem,
+                    selectedHour === hour && styles.timeItemSelectedHour,
+                  ]}
+                  onPress={() => setSelectedHour(hour)}
+                >
+                  <Text style={[
+                    styles.timeText,
+                    selectedHour === hour && styles.timeTextSelected,
+                  ]}>
+                    {hour.toString().padStart(2, '0')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Selected Time Display */}
+            <View style={styles.selectedTimeContainer}>
+              <View style={styles.selectedTimeBox}>
+                <Text style={styles.selectedTimeText}>
+                  {selectedHour.toString().padStart(2, '0')} h
+                </Text>
+              </View>
+              <Text style={styles.timeSeparator}>:</Text>
+              <View style={styles.selectedTimeBox}>
+                <Text style={styles.selectedTimeText}>
+                  {selectedMinute.toString().padStart(2, '0')} m
+                </Text>
+              </View>
+            </View>
+
+            {/* Minutes Column */}
+            <View style={styles.timeColumn}>
+              {minutes.map((minute) => (
+                <TouchableOpacity
+                  key={`minute-${minute}`}
+                  style={[
+                    styles.timeItem,
+                    selectedMinute === minute && styles.timeItemSelectedMinute,
+                  ]}
+                  onPress={() => setSelectedMinute(minute)}
+                >
+                  <Text style={[
+                    styles.timeText,
+                    selectedMinute === minute && styles.timeTextSelected,
+                  ]}>
+                    {minute.toString().padStart(2, '0')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Start Button */}
+          <TouchableOpacity 
+            style={styles.startButton}
+            onPress={handleStartSleepTimer}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.startButtonText}>Start</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -242,27 +272,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
     color: colors.textPrimary,
-  },
-  placeholder: {
-    width: 40,
   },
   scrollView: {
     flex: 1,
@@ -270,60 +286,118 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 120,
   },
-  section: {
-    marginTop: 24,
+  settingsContainer: {
     paddingHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    justifyContent: 'space-between',
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 12,
   },
-  settingInfo: {
-    flex: 1,
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 24,
+    marginRight: 12,
   },
   settingTitle: {
     fontSize: 16,
-    fontWeight: '500',
     color: colors.textPrimary,
+    fontWeight: '400',
   },
-  settingSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  versionContainer: {
-    alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 20,
-  },
-  versionText: {
+  settingValue: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.primary,
+    fontWeight: '500',
   },
-  copyrightText: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 4,
+  // Sleep Timer Styles
+  sleepTimerContainer: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+  },
+  sleepTimerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundCard,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 16,
+  },
+  sleepTimerTitle: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginLeft: 12,
+  },
+  timePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  timeColumn: {
+    alignItems: 'center',
+  },
+  timeItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  timeItemSelectedHour: {
+    // Selected state handled by selectedTimeContainer
+  },
+  timeItemSelectedMinute: {
+    // Selected state handled by selectedTimeContainer
+  },
+  timeText: {
+    fontSize: 18,
+    color: colors.textSecondary,
+    fontWeight: '400',
+  },
+  timeTextSelected: {
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  selectedTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  selectedTimeBox: {
+    paddingHorizontal: 8,
+  },
+  selectedTimeText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  timeSeparator: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginHorizontal: 4,
+  },
+  startButton: {
+    backgroundColor: '#E74C3C',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+    alignSelf: 'center',
+    marginTop: 24,
+  },
+  startButtonText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: '600',
   },
 });
 
