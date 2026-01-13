@@ -83,6 +83,10 @@ const DiscoverScreen = ({ navigation }) => {
       navigation.navigate('Home');
     } else if (tabId === 'search') {
       navigation.navigate('Search');
+    } else if (tabId === 'favorites') {
+      navigation.navigate('Favorites');
+    } else if (tabId === 'settings') {
+      navigation.navigate('Settings');
     }
   };
 
