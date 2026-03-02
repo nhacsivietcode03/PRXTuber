@@ -36,12 +36,14 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
     renamePlaylist,
     playlists,
     addSongToPlaylist,
+    FAVORITES_PLAYLIST_ID,
   } = usePlaylist();
   const { playSong } = useMusicPlayer();
   
   // Get fresh playlist data from context
   const currentPlaylist = getPlaylist(playlist?.id) || playlist;
   const songs = (currentPlaylist?.songs || []).filter(song => song && song.id);
+  const isSystemPlaylist = currentPlaylist?.id === FAVORITES_PLAYLIST_ID || currentPlaylist?.isSystem;
 
   // Refresh when screen is focused
   useFocusEffect(
@@ -90,6 +92,7 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
 
   // Playlist Options
   const handleRenamePlaylist = () => {
+    if (isSystemPlaylist) return; // Cannot rename system playlists
     setShowPlaylistOptions(false);
     setNewName(currentPlaylist?.name || '');
     setShowRenameModal(true);
@@ -104,6 +107,10 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
   };
 
   const handleDeletePlaylist = () => {
+    if (isSystemPlaylist) {
+      Alert.alert('Cannot Delete', 'This is a system playlist and cannot be deleted.');
+      return;
+    }
     setShowPlaylistOptions(false);
     Alert.alert(
       'Remove Playlist',
@@ -299,10 +306,12 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
               <Text style={styles.sheetOptionText}>Add playlist photo</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.sheetOption} onPress={handleRenamePlaylist}>
-              <Ionicons name="pencil-outline" size={22} color={colors.textPrimary} />
-              <Text style={styles.sheetOptionText}>Rename playlist</Text>
-            </TouchableOpacity>
+            {!isSystemPlaylist && (
+              <TouchableOpacity style={styles.sheetOption} onPress={handleRenamePlaylist}>
+                <Ionicons name="pencil-outline" size={22} color={colors.textPrimary} />
+                <Text style={styles.sheetOptionText}>Rename playlist</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.sheetOption} onPress={handleAddSong}>
               <Ionicons name="add-circle-outline" size={22} color={colors.textPrimary} />
@@ -314,10 +323,12 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
               <Text style={styles.sheetOptionText}>Share playlist</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.sheetOption} onPress={handleDeletePlaylist}>
-              <Ionicons name="trash-outline" size={22} color="#FF6B6B" />
-              <Text style={[styles.sheetOptionText, { color: '#FF6B6B' }]}>Remove playlist</Text>
-            </TouchableOpacity>
+            {!isSystemPlaylist && (
+              <TouchableOpacity style={styles.sheetOption} onPress={handleDeletePlaylist}>
+                <Ionicons name="trash-outline" size={22} color="#FF6B6B" />
+                <Text style={[styles.sheetOptionText, { color: '#FF6B6B' }]}>Remove playlist</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>

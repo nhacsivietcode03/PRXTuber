@@ -5,9 +5,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const PlaylistContext = createContext();
 
 const PLAYLISTS_STORAGE_KEY = '@prxtuber_playlists';
+const FAVORITES_PLAYLIST_ID = 'favorites_system';
 
 // Default playlists for demo
 const DEFAULT_PLAYLISTS = [
+  { id: FAVORITES_PLAYLIST_ID, name: 'Favorites', songs: [], isSystem: true },
   { id: '1', name: 'My morning tracks', songs: [] },
   { id: '2', name: 'Random song', songs: [] },
   { id: '3', name: 'Chill songs', songs: [] },
@@ -38,6 +40,18 @@ export const PlaylistProvider = ({ children }) => {
             ...p,
             songs: p.songs || []
           }));
+          
+          // Ensure Favorites playlist always exists at the top
+          const hasFavorites = validPlaylists.some(p => p.id === FAVORITES_PLAYLIST_ID);
+          if (!hasFavorites) {
+            validPlaylists.unshift({
+              id: FAVORITES_PLAYLIST_ID,
+              name: 'Favorites',
+              songs: [],
+              isSystem: true,
+            });
+          }
+          
           setPlaylists(validPlaylists);
         }
       } catch (error) {
@@ -147,6 +161,12 @@ export const PlaylistProvider = ({ children }) => {
 
   // Delete playlist
   const deletePlaylist = useCallback((playlistId) => {
+    // Prevent deleting Favorites playlist
+    if (playlistId === FAVORITES_PLAYLIST_ID) {
+      console.warn('Cannot delete Favorites playlist');
+      return;
+    }
+    
     setPlaylists(prevPlaylists => {
       const updatedPlaylists = prevPlaylists.filter(p => p.id !== playlistId);
       savePlaylists(updatedPlaylists);
@@ -180,6 +200,26 @@ export const PlaylistProvider = ({ children }) => {
     return playlist?.songs.some(s => s.id === songId) || false;
   }, [playlists]);
 
+  // Check if song is in favorites
+  const isSongFavorite = useCallback((songId) => {
+    return isSongInPlaylist(FAVORITES_PLAYLIST_ID, songId);
+  }, [isSongInPlaylist]);
+
+  // Toggle favorite status of a song
+  const toggleSongFavorite = useCallback((song) => {
+    if (!song || !song.id) return;
+    
+    const isCurrentlyFavorite = isSongFavorite(song.id);
+    
+    if (isCurrentlyFavorite) {
+      removeSongFromPlaylist(FAVORITES_PLAYLIST_ID, song.id);
+    } else {
+      addSongToPlaylist(FAVORITES_PLAYLIST_ID, song);
+    }
+    
+    return !isCurrentlyFavorite;
+  }, [isSongFavorite, addSongToPlaylist, removeSongFromPlaylist]);
+
   const value = {
     playlists,
     isLoading,
@@ -191,6 +231,9 @@ export const PlaylistProvider = ({ children }) => {
     renamePlaylist,
     getPlaylist,
     isSongInPlaylist,
+    isSongFavorite,
+    toggleSongFavorite,
+    FAVORITES_PLAYLIST_ID,
   };
 
   return (

@@ -10,6 +10,7 @@ import {
   FlatList,
   Animated,
   Alert,
+  Linking,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -149,7 +150,7 @@ const PlayScreen = ({ route, navigation }) => {
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.menuButton}>
+          <TouchableOpacity style={styles.menuButton} onPress={togglePlaylistSheet}>
             <Feather name="menu" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         </SafeAreaView>
@@ -242,22 +243,18 @@ const PlayScreen = ({ route, navigation }) => {
 
         {/* Bottom Actions - Hidden when playlist is open */}
         {!showPlaylist && <View style={styles.bottomActions}>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => Linking.openURL('https://www.jamendo.com/start')}
+          >
             <Feather name="share-2" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => setShowAddToPlaylist(true)}
           >
-            <Ionicons name="add-circle-outline" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={togglePlaylistSheet}
-          >
-            <Feather name="menu" size={20} color={colors.textMuted} />
+            <MaterialIcons name="playlist-add" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>}
       </View>

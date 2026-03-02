@@ -25,7 +25,14 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // Request interceptor for logging
 jamendoClient.interceptors.request.use(
   (config) => {
-    console.log('[Jamendo API]', config.method?.toUpperCase(), config.url);
+    // Build full URL with params
+    const params = new URLSearchParams(config.params).toString();
+    const fullUrl = `${config.baseURL}${config.url}?${params}`;
+    console.log('========== JAMENDO API REQUEST ==========');
+    console.log('[URL]', fullUrl);
+    console.log('[Method]', config.method?.toUpperCase());
+    console.log('[Params]', JSON.stringify(config.params, null, 2));
+    console.log('==========================================');
     return config;
   },
   (error) => Promise.reject(error)
@@ -33,7 +40,20 @@ jamendoClient.interceptors.request.use(
 
 // Response interceptor for error handling with retry logic
 jamendoClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Build full URL for logging
+    const params = new URLSearchParams(response.config.params).toString();
+    const fullUrl = `${response.config.baseURL}${response.config.url}?${params}`;
+    
+    console.log('========== JAMENDO API RESPONSE ==========');
+    console.log('[URL]', fullUrl);
+    console.log('[Status]', response.status);
+    console.log('[Headers]', JSON.stringify(response.data?.headers, null, 2));
+    console.log('[Total Results]', response.data?.results?.length || 0);
+    console.log('[Full Data]', JSON.stringify(response.data, null, 2));
+    console.log('===========================================');
+    return response;
+  },
   async (error) => {
     const config = error.config;
     

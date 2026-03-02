@@ -1,6 +1,7 @@
 // MusicPlayerContext - Global state for music playback
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { Audio } from 'expo-av';
+import { usePlaylist } from './PlaylistContext';
 
 const MusicPlayerContext = createContext();
 
@@ -13,6 +14,8 @@ export const useMusicPlayer = () => {
 };
 
 export const MusicPlayerProvider = ({ children }) => {
+  const { isSongFavorite, toggleSongFavorite } = usePlaylist();
+  
   const [currentSong, setCurrentSong] = useState(null);
   const [playlist, setPlaylist] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -20,7 +23,6 @@ export const MusicPlayerProvider = ({ children }) => {
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [repeatMode, setRepeatMode] = useState(0); // 0: off, 1: all, 2: one
-  const [isFavorite, setIsFavorite] = useState(false);
   
   const soundRef = useRef(null);
 
@@ -144,10 +146,11 @@ export const MusicPlayerProvider = ({ children }) => {
     }
   }, [getCurrentIndex, playlist, repeatMode, playSong]);
 
-  // Toggle favorite
+  // Toggle favorite - add/remove from Favorites playlist
   const toggleFavorite = useCallback(() => {
-    setIsFavorite(prev => !prev);
-  }, []);
+    if (!currentSong) return;
+    toggleSongFavorite(currentSong);
+  }, [currentSong, toggleSongFavorite]);
 
   // Toggle repeat mode
   const toggleRepeat = useCallback(() => {
@@ -175,6 +178,9 @@ export const MusicPlayerProvider = ({ children }) => {
       }
     };
   }, []);
+
+  // Compute isFavorite based on current song
+  const isFavorite = currentSong ? isSongFavorite(currentSong.id) : false;
 
   const value = {
     // State
