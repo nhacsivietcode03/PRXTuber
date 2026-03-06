@@ -18,9 +18,13 @@ import colors from '../theme/colors';
 import { getTopTracks } from '../api/musicService';
 import { useMusicPlayer } from '../context';
 
+const PAGE_LIMIT = 20;
+
 const TopSongsScreen = ({ navigation }) => {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [selectedSong, setSelectedSong] = useState(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
@@ -33,8 +37,9 @@ const TopSongsScreen = ({ navigation }) => {
   const fetchSongs = useCallback(async () => {
     try {
       setLoading(true);
-      const tracks = await getTopTracks(50); // Fetch more songs
+      const tracks = await getTopTracks(PAGE_LIMIT, 'popularity_total', 0);
       setSongs(tracks);
+      setHasMore(tracks.length >= PAGE_LIMIT);
     } catch (error) {
       console.error('Error fetching top songs:', error);
       Toast.show({ type: 'error', text1: 'Error', text2: 'Could not load songs. Please try again.' });
@@ -42,6 +47,22 @@ const TopSongsScreen = ({ navigation }) => {
       setLoading(false);
     }
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const newTracks = await getTopTracks(PAGE_LIMIT, 'popularity_total', songs.length);
+      if (newTracks.length < PAGE_LIMIT) setHasMore(false);
+      if (newTracks.length > 0) {
+        setSongs(prev => [...prev, ...newTracks]);
+      }
+    } catch (error) {
+      console.error('Error loading more songs:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, songs.length]);
 
   useEffect(() => {
     fetchSongs();
@@ -154,6 +175,11 @@ const TopSongsScreen = ({ navigation }) => {
           contentContainerStyle={styles.listContent}
           bounces={false}
           overScrollMode="never"
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ paddingVertical: 16 }} />
+          ) : null}
         />
       )}
 

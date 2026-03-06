@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   StyleSheet,
   TouchableOpacity,
   ImageBackground,
@@ -20,11 +20,15 @@ import colors from '../theme/colors';
 import { getTracksByGenre, getTopTracks, getTracksByArtist } from '../api/musicService';
 import { useMusicPlayer } from '../context';
 
+const SONG_LIMIT = 20;
+
 const TopicDetailScreen = ({ route, navigation }) => {
   const { topic } = route.params || {};
-  
+
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [selectedSong, setSelectedSong] = useState(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
@@ -33,37 +37,47 @@ const TopicDetailScreen = ({ route, navigation }) => {
   // Use global music player context
   const { currentSong, playSong } = useMusicPlayer();
 
-  // Fetch songs for this topic - API will return actual count available
+  const fetchTracksWithOffset = useCallback(async (offset = 0) => {
+    if (topic?.isArtist && topic?.id) {
+      return await getTracksByArtist(topic.id, SONG_LIMIT, offset);
+    } else if (topic?.genre) {
+      return await getTracksByGenre(topic.genre, SONG_LIMIT, 'popularity_total', offset);
+    } else if (topic?.artistId) {
+      return await getTracksByArtist(topic.artistId, SONG_LIMIT, offset);
+    } else {
+      return await getTopTracks(SONG_LIMIT, 'popularity_total', offset);
+    }
+  }, [topic?.genre, topic?.artistId, topic?.isArtist, topic?.id]);
+
+  // Fetch songs for this topic
   const fetchSongs = useCallback(async () => {
     try {
       setLoading(true);
-      let tracks;
-      
-      // Use higher limit (100) to get more songs from API
-      // Jamendo API will return available songs up to the limit
-      const SONG_LIMIT = 100;
-      
-      if (topic?.isArtist && topic?.id) {
-        // Fetch by artist ID (from Discover screen)
-        tracks = await getTracksByArtist(topic.id, SONG_LIMIT);
-      } else if (topic?.genre) {
-        // Fetch by genre/tag
-        tracks = await getTracksByGenre(topic.genre, SONG_LIMIT);
-      } else if (topic?.artistId) {
-        // Fetch by artist ID (for hot topics from specific artist)
-        tracks = await getTracksByArtist(topic.artistId, SONG_LIMIT);
-      } else {
-        // Fallback to top tracks
-        tracks = await getTopTracks(SONG_LIMIT);
-      }
-      
+      const tracks = await fetchTracksWithOffset(0);
       setSongs(tracks);
+      setHasMore(tracks.length >= SONG_LIMIT);
     } catch (error) {
       console.error('Error fetching songs:', error);
     } finally {
       setLoading(false);
     }
-  }, [topic?.genre, topic?.artistId, topic?.isArtist, topic?.id]);
+  }, [fetchTracksWithOffset]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const newTracks = await fetchTracksWithOffset(songs.length);
+      if (newTracks.length < SONG_LIMIT) setHasMore(false);
+      if (newTracks.length > 0) {
+        setSongs(prev => [...prev, ...newTracks]);
+      }
+    } catch (error) {
+      console.error('Error loading more songs:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, songs.length, fetchTracksWithOffset]);
 
   useEffect(() => {
     fetchSongs();
@@ -140,96 +154,104 @@ const TopicDetailScreen = ({ route, navigation }) => {
     Toast.show({ type: 'info', text1: 'Share', text2: `Share "${selectedSong?.title}" by ${selectedSong?.artist}` });
   };
 
+  const renderSongItem = ({ item: song, index }) => (
+    <SongItem
+      key={song.id}
+      id={song.id}
+      title={song.title}
+      artist={song.artist}
+      image={song.image}
+      song={song}
+      isPlaying={song.id === currentSong?.id}
+      isCurrentSong={song.id === currentSong?.id}
+      onPress={() => handleSongPress(song, index)}
+      onMorePress={handleMorePress}
+    />
+  );
+
+  const renderHeader = () => (
+    <>
+      {/* Hero Banner */}
+      <ImageBackground
+        source={{ uri: topic?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800' }}
+        style={styles.heroBanner}
+      >
+        <LinearGradient
+          colors={['rgba(0,0,0,0.3)', 'rgba(18,18,18,1)']}
+          style={styles.heroGradient}
+        >
+          {/* Header */}
+          <SafeAreaView edges={['top']}>
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={handleBack}
+              >
+                <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                {topic?.title || 'Top songs of the week'}
+              </Text>
+              <View style={styles.placeholder} />
+            </View>
+          </SafeAreaView>
+
+          {/* Topic Info */}
+          <View style={styles.topicInfo}>
+            <Text style={styles.topicTitle}>
+              {topic?.title || 'Top songs of the week'}
+            </Text>
+
+            {/* Centered Play All Button */}
+            <View style={styles.playAllContainer}>
+              <TouchableOpacity
+                style={styles.playAllButton}
+                onPress={handlePlayAll}
+              >
+                <Ionicons name="play" size={18} color={colors.background} />
+                <Text style={styles.playAllText}>Play all</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.trackCount}>
+              {songs.length} tracks
+            </Text>
+          </View>
+        </LinearGradient>
+      </ImageBackground>
+
+      {/* Section Title */}
+      <View style={styles.songsSection}>
+        <Text style={styles.sectionTitle}>Top Song</Text>
+      </View>
+    </>
+  );
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        overScrollMode="never"
-      >
-        {/* Hero Banner */}
-        <ImageBackground
-          source={{ uri: topic?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800' }}
-          style={styles.heroBanner}
-        >
-          <LinearGradient
-            colors={['rgba(0,0,0,0.3)', 'rgba(18,18,18,1)']}
-            style={styles.heroGradient}
-          >
-            {/* Header */}
-            <SafeAreaView edges={['top']}>
-              <View style={styles.header}>
-                <TouchableOpacity 
-                  style={styles.backButton}
-                  onPress={handleBack}
-                >
-                  <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle} numberOfLines={1}>
-                  {topic?.title || 'Top songs of the week'}
-                </Text>
-                <View style={styles.placeholder} />
-              </View>
-            </SafeAreaView>
 
-            {/* Topic Info */}
-            <View style={styles.topicInfo}>
-              <Text style={styles.topicTitle}>
-                {topic?.title || 'Top songs of the week'}
-              </Text>
-              
-              {/* Centered Play All Button */}
-              <View style={styles.playAllContainer}>
-                <TouchableOpacity 
-                  style={styles.playAllButton}
-                  onPress={handlePlayAll}
-                >
-                  <Ionicons name="play" size={18} color={colors.background} />
-                  <Text style={styles.playAllText}>Play all</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={styles.trackCount}>
-                {songs.length} tracks
-              </Text>
-            </View>
-          </LinearGradient>
-        </ImageBackground>
-
-        {/* Songs List */}
-        <View style={styles.songsSection}>
-          <Text style={styles.sectionTitle}>Top Song</Text>
-          
-          {loading ? (
-            <ActivityIndicator 
-              size="large" 
-              color={colors.primary} 
-              style={styles.loader}
-            />
-          ) : (
-            songs.map((song, index) => (
-              <SongItem
-                key={song.id}
-                id={song.id}
-                title={song.title}
-                artist={song.artist}
-                image={song.image}
-                song={song}
-                isPlaying={song.id === currentSong?.id}
-                isCurrentSong={song.id === currentSong?.id}
-                onPress={() => handleSongPress(song, index)}
-                onMorePress={handleMorePress}
-              />
-            ))
-          )}
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
-
-        {/* Bottom spacing */}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+      ) : (
+        <FlatList
+          data={songs}
+          renderItem={renderSongItem}
+          keyExtractor={(item) => item.id.toString()}
+          ListHeaderComponent={renderHeader}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          overScrollMode="never"
+          contentContainerStyle={{ paddingBottom: 150 }}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ paddingVertical: 16 }} />
+          ) : null}
+        />
+      )}
 
       {/* Now Playing Bar */}
       <NowPlayingBar

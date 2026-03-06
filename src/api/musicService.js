@@ -6,11 +6,12 @@ import jamendoClient from './jamendoClient';
  * @param {number} limit - Number of tracks to fetch
  * @param {string} order - Order by: popularity_total, popularity_week, popularity_month
  */
-export async function getTopTracks(limit = 10, order = 'popularity_total') {
+export async function getTopTracks(limit = 10, order = 'popularity_total', offset = 0) {
   try {
     const { data } = await jamendoClient.get('/tracks', {
       params: {
         limit,
+        offset,
         order,
         include: 'musicinfo',
         imagesize: 200,
@@ -126,12 +127,13 @@ export async function getPlaylists(limit = 6) {
  * @param {string} query - Search query
  * @param {number} limit - Number of results
  */
-export async function searchTracks(query, limit = 20) {
+export async function searchTracks(query, limit = 20, offset = 0) {
   try {
     const { data } = await jamendoClient.get('/tracks', {
       params: {
         search: query,
         limit,
+        offset,
         imagesize: 200,
       },
     });
@@ -183,15 +185,16 @@ export function getGenres() {
  * @param {number} limit - Number of tracks (default 50 for better results)
  * @param {string} order - Order by popularity
  */
-export async function getTracksByGenre(genre, limit = 50, order = 'popularity_total') {
+export async function getTracksByGenre(genre, limit = 50, order = 'popularity_total', offset = 0) {
   try {
     const { data } = await jamendoClient.get('/tracks', {
       params: {
         tags: genre,
         limit,
+        offset,
         order,
-        featured: 1, // Get featured tracks for better quality
-        groupby: 'artist_id', // One track per artist to avoid duplicates
+        featured: 1,
+        groupby: 'artist_id',
         imagesize: 200,
         include: 'musicinfo',
       },
@@ -291,14 +294,15 @@ export async function getTracksWithMusicInfo(limit = 20) {
  * Get artists for Discover section
  * @param {number} limit - Number of artists
  */
-export async function getArtists(limit = 20) {
+export async function getArtists(limit = 20, offset = 0) {
   try {
     const { data } = await jamendoClient.get('/artists', {
       params: {
         limit,
+        offset,
         order: 'popularity_total',
         imagesize: 200,
-        hasimage: 'true', // Only get artists with images
+        hasimage: 'true',
       },
     });
     
@@ -325,12 +329,13 @@ export async function getArtists(limit = 20) {
  * @param {string|number} artistId - Artist ID
  * @param {number} limit - Number of tracks (default 50 for better results)
  */
-export async function getTracksByArtist(artistId, limit = 50) {
+export async function getTracksByArtist(artistId, limit = 50, offset = 0) {
   try {
     const { data } = await jamendoClient.get('/tracks', {
       params: {
         artist_id: artistId,
         limit,
+        offset,
         order: 'popularity_total',
         imagesize: 200,
         include: 'musicinfo',

@@ -22,18 +22,23 @@ import { searchTracks } from '../api/musicService';
 import { SongBottomSheet, AddToPlaylistSheet } from '../components';
 import { useMusicPlayer } from '../context';
 
+const SEARCH_LIMIT = 20;
+
 const SearchScreen = ({ route, navigation }) => {
   const { addToPlaylist } = route.params || {};
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedSong, setSelectedSong] = useState(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const searchInputRef = useRef(null);
   const searchTimeout = useRef(null);
+  const currentQuery = useRef('');
 
   const { playSong } = useMusicPlayer();
 
@@ -48,7 +53,7 @@ const SearchScreen = ({ route, navigation }) => {
   // Debounced search
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
-    
+
     // Clear previous timeout
     if (searchTimeout.current) {
       clearTimeout(searchTimeout.current);
@@ -57,6 +62,7 @@ const SearchScreen = ({ route, navigation }) => {
     if (query.trim().length < 2) {
       setSearchResults([]);
       setHasSearched(false);
+      setHasMore(true);
       return;
     }
 
@@ -64,9 +70,11 @@ const SearchScreen = ({ route, navigation }) => {
     searchTimeout.current = setTimeout(async () => {
       setLoading(true);
       setHasSearched(true);
+      currentQuery.current = query.trim();
       try {
-        const results = await searchTracks(query.trim(), 20);
+        const results = await searchTracks(query.trim(), SEARCH_LIMIT, 0);
         setSearchResults(results);
+        setHasMore(results.length >= SEARCH_LIMIT);
       } catch (error) {
         console.error('Search error:', error);
         setSearchResults([]);
@@ -75,6 +83,22 @@ const SearchScreen = ({ route, navigation }) => {
       }
     }, 500);
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !currentQuery.current) return;
+    setLoadingMore(true);
+    try {
+      const newResults = await searchTracks(currentQuery.current, SEARCH_LIMIT, searchResults.length);
+      if (newResults.length < SEARCH_LIMIT) setHasMore(false);
+      if (newResults.length > 0) {
+        setSearchResults(prev => [...prev, ...newResults]);
+      }
+    } catch (error) {
+      console.error('Error loading more results:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, searchResults.length]);
 
   // Handle song press - navigate to Play screen
   const handleSongPress = (song) => {
@@ -262,6 +286,11 @@ const SearchScreen = ({ route, navigation }) => {
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={loadingMore ? (
+          <ActivityIndicator size="small" color={colors.primary} style={{ paddingVertical: 16 }} />
+        ) : null}
       />
 
       {/* Bottom Navigation */}

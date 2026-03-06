@@ -25,9 +25,13 @@ const COLUMN_COUNT = 3;
 const ITEM_SPACING = 16;
 const ITEM_WIDTH = (width - (ITEM_SPACING * (COLUMN_COUNT + 1))) / COLUMN_COUNT;
 
+const ARTIST_LIMIT = 15;
+
 const DiscoverScreen = ({ navigation }) => {
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('discover');
 
@@ -35,8 +39,9 @@ const DiscoverScreen = ({ navigation }) => {
   const fetchArtists = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getArtists(30); // Fetch 30 artists for grid
+      const data = await getArtists(ARTIST_LIMIT, 0);
       setArtists(data);
+      setHasMore(data.length >= ARTIST_LIMIT);
     } catch (error) {
       console.error('Error fetching artists:', error);
       Toast.show({ type: 'error', text1: 'Error', text2: 'Could not load artists. Please try again.' });
@@ -45,12 +50,30 @@ const DiscoverScreen = ({ navigation }) => {
     }
   }, []);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const newData = await getArtists(ARTIST_LIMIT, artists.length);
+      if (newData.length < ARTIST_LIMIT) setHasMore(false);
+      if (newData.length > 0) {
+        setArtists(prev => [...prev, ...newData]);
+      }
+    } catch (error) {
+      console.error('Error loading more artists:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, artists.length]);
+
   // Refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchArtists();
+    const data = await getArtists(ARTIST_LIMIT, 0);
+    setArtists(data);
+    setHasMore(data.length >= ARTIST_LIMIT);
     setRefreshing(false);
-  }, [fetchArtists]);
+  }, []);
 
   useEffect(() => {
     fetchArtists();
@@ -180,6 +203,11 @@ const DiscoverScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ paddingVertical: 16 }} />
+          ) : null}
         />
       )}
 
