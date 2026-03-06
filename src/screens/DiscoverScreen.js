@@ -9,12 +9,12 @@ import {
   ActivityIndicator,
   Image,
   Dimensions,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 import { BottomNavBar } from '../components';
 import colors from '../theme/colors';
@@ -39,7 +39,7 @@ const DiscoverScreen = ({ navigation }) => {
       setArtists(data);
     } catch (error) {
       console.error('Error fetching artists:', error);
-      Alert.alert('Error', 'Could not load artists. Please try again.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Could not load artists. Please try again.' });
     } finally {
       setLoading(false);
     }

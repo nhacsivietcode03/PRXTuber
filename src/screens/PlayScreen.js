@@ -9,13 +9,13 @@ import {
   Dimensions,
   FlatList,
   Animated,
-  Alert,
   Linking,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import Toast from 'react-native-toast-message';
 
 import colors from '../theme/colors';
 import { useMusicPlayer } from '../context';
@@ -162,7 +162,14 @@ const PlayScreen = ({ route, navigation }) => {
           <MaterialCommunityIcons name="fullscreen" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.videoControlButton}>
+        <TouchableOpacity
+          style={styles.videoControlButton}
+          onPress={() => {
+            if (currentSong?.id) {
+              Linking.openURL(`https://www.jamendo.com/track/${currentSong.id}`);
+            }
+          }}
+        >
           <Feather name="external-link" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
@@ -295,7 +302,7 @@ const PlayScreen = ({ route, navigation }) => {
         song={currentSong}
         onClose={() => setShowAddToPlaylist(false)}
         onSuccess={(message) => {
-          Alert.alert('Success', message);
+          Toast.show({ type: 'success', text1: 'Success', text2: message });
         }}
       />
     </View>

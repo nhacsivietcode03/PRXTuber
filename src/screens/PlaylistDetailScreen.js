@@ -10,11 +10,13 @@ import {
   TextInput,
   Image,
   Alert,
+  Linking,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 
 import { BottomNavBar } from '../components';
 import colors from '../theme/colors';
@@ -108,7 +110,7 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
 
   const handleDeletePlaylist = () => {
     if (isSystemPlaylist) {
-      Alert.alert('Cannot Delete', 'This is a system playlist and cannot be deleted.');
+      Toast.show({ type: 'error', text1: 'Cannot Delete', text2: 'This is a system playlist and cannot be deleted.' });
       return;
     }
     setShowPlaylistOptions(false);
@@ -131,7 +133,7 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
 
   const handleSharePlaylist = () => {
     setShowPlaylistOptions(false);
-    Alert.alert('Share', 'Share playlist feature coming soon!');
+    Linking.openURL('https://www.jamendo.com/start');
   };
 
   // Song Options
@@ -140,7 +142,7 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
     // Show playlist selection
     const otherPlaylists = playlists.filter(p => p.id !== currentPlaylist?.id);
     if (otherPlaylists.length === 0) {
-      Alert.alert('No Playlists', 'Create another playlist first');
+      Toast.show({ type: 'info', text1: 'No Playlists', text2: 'Create another playlist first' });
       return;
     }
     
@@ -151,7 +153,7 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
         text: p.name,
         onPress: () => {
           addSongToPlaylist(p.id, selectedSong);
-          Alert.alert('Added', `"${selectedSong?.title}" added to "${p.name}"`);
+          Toast.show({ type: 'success', text1: 'Added', text2: `"${selectedSong?.title}" added to "${p.name}"` });
         }
       })).concat([{ text: 'Cancel', style: 'cancel' }])
     );
@@ -159,7 +161,7 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
 
   const handleShareSong = () => {
     setShowSongOptions(false);
-    Alert.alert('Share', `Share "${selectedSong?.title}" - Coming soon!`);
+    Linking.openURL('https://www.jamendo.com/start');
   };
 
   const handleRemoveFromPlaylist = () => {
@@ -300,7 +302,7 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
             {/* Options */}
             <TouchableOpacity style={styles.sheetOption} onPress={() => {
               setShowPlaylistOptions(false);
-              Alert.alert('Add Photo', 'Feature coming soon!');
+              Toast.show({ type: 'info', text1: 'Add Photo', text2: 'Feature coming soon!' });
             }}>
               <Ionicons name="image-outline" size={22} color={colors.textPrimary} />
               <Text style={styles.sheetOptionText}>Add playlist photo</Text>

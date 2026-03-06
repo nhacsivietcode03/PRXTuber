@@ -1,5 +1,5 @@
 // SettingsScreen - App settings (matching Figma design)
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,11 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 import { BottomNavBar } from '../components';
 import colors from '../theme/colors';
+import { useMusicPlayer } from '../context';
 
 const SettingsScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('settings');
@@ -23,9 +25,52 @@ const SettingsScreen = ({ navigation }) => {
   const [lightMode, setLightMode] = useState(false);
   const [selectedHour, setSelectedHour] = useState(6);
   const [selectedMinute, setSelectedMinute] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const timerRef = useRef(null);
+
+  const { isPlaying, togglePlayPause } = useMusicPlayer();
 
   const hours = [4, 5, 6, 7, 8];
   const minutes = [58, 59, 0, 1, 2];
+
+  // Countdown effect
+  useEffect(() => {
+    if (timerActive && remainingSeconds > 0) {
+      timerRef.current = setInterval(() => {
+        setRemainingSeconds(prev => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            setTimerActive(false);
+            Toast.show({ type: 'info', text1: 'Sleep Timer', text2: 'Timer finished. Music stopped.' });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [timerActive]);
+
+  // Stop music when timer finishes
+  useEffect(() => {
+    if (!timerActive && remainingSeconds === 0 && timerRef.current === null) return;
+    if (!timerActive && remainingSeconds === 0 && isPlaying) {
+      togglePlayPause();
+    }
+  }, [timerActive, remainingSeconds]);
+
+  const formatCountdown = () => {
+    const h = Math.floor(remainingSeconds / 3600);
+    const m = Math.floor((remainingSeconds % 3600) / 60);
+    const s = remainingSeconds % 60;
+    return `${h.toString().padStart(2, '0')} : ${m.toString().padStart(2, '0')} : ${s.toString().padStart(2, '0')}`;
+  };
 
   const handleTabPress = (tabId) => {
     setActiveTab(tabId);
@@ -82,12 +127,22 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const handleStartSleepTimer = () => {
-    const totalMinutes = selectedHour * 60 + selectedMinute;
-    Alert.alert(
-      'Sleep Timer',
-      `Sleep timer set for ${selectedHour}h ${selectedMinute.toString().padStart(2, '0')}m\n\nMusic will stop after ${totalMinutes} minutes.`,
-      [{ text: 'OK' }]
-    );
+    const totalSeconds = (selectedHour * 60 + selectedMinute) * 60;
+    if (totalSeconds <= 0) {
+      Toast.show({ type: 'error', text1: 'Invalid Time', text2: 'Please select a valid time.' });
+      return;
+    }
+    setRemainingSeconds(totalSeconds);
+    setTimerActive(true);
+  };
+
+  const handleCancelTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setTimerActive(false);
+    setRemainingSeconds(0);
   };
 
   const renderSettingItem = ({ icon, IconComponent = Ionicons, title, value, onPress }) => (
@@ -183,74 +238,94 @@ const SettingsScreen = ({ navigation }) => {
             <Text style={styles.sleepTimerTitle}>Sleep timer</Text>
           </View>
 
-          {/* Time Picker */}
-          <View style={styles.timePickerContainer}>
-            {/* Hours Column */}
-            <View style={styles.timeColumn}>
-              {hours.map((hour) => (
-                <TouchableOpacity
-                  key={`hour-${hour}`}
-                  style={[
-                    styles.timeItem,
-                    selectedHour === hour && styles.timeItemSelectedHour,
-                  ]}
-                  onPress={() => setSelectedHour(hour)}
-                >
-                  <Text style={[
-                    styles.timeText,
-                    selectedHour === hour && styles.timeTextSelected,
-                  ]}>
-                    {hour.toString().padStart(2, '0')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Selected Time Display */}
-            <View style={styles.selectedTimeContainer}>
-              <View style={styles.selectedTimeBox}>
-                <Text style={styles.selectedTimeText}>
-                  {selectedHour.toString().padStart(2, '0')} h
-                </Text>
+          {timerActive ? (
+            /* Countdown View */
+            <View style={styles.countdownContainer}>
+              <View style={styles.countdownDisplay}>
+                <Text style={styles.countdownText}>{formatCountdown()}</Text>
+                <Text style={styles.countdownLabel}>remaining</Text>
               </View>
-              <Text style={styles.timeSeparator}>:</Text>
-              <View style={styles.selectedTimeBox}>
-                <Text style={styles.selectedTimeText}>
-                  {selectedMinute.toString().padStart(2, '0')} m
-                </Text>
+
+              <TouchableOpacity
+                style={styles.cancelTimerButton}
+                onPress={handleCancelTimer}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.cancelTimerText}>Cancel timer</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* Time Picker View */
+            <>
+              <View style={styles.timePickerContainer}>
+                {/* Hours Column */}
+                <View style={styles.timeColumn}>
+                  {hours.map((hour) => (
+                    <TouchableOpacity
+                      key={`hour-${hour}`}
+                      style={[
+                        styles.timeItem,
+                        selectedHour === hour && styles.timeItemSelectedHour,
+                      ]}
+                      onPress={() => setSelectedHour(hour)}
+                    >
+                      <Text style={[
+                        styles.timeText,
+                        selectedHour === hour && styles.timeTextSelected,
+                      ]}>
+                        {hour.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Selected Time Display */}
+                <View style={styles.selectedTimeContainer}>
+                  <View style={styles.selectedTimeBox}>
+                    <Text style={styles.selectedTimeText}>
+                      {selectedHour.toString().padStart(2, '0')} h
+                    </Text>
+                  </View>
+                  <Text style={styles.timeSeparator}>:</Text>
+                  <View style={styles.selectedTimeBox}>
+                    <Text style={styles.selectedTimeText}>
+                      {selectedMinute.toString().padStart(2, '0')} m
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Minutes Column */}
+                <View style={styles.timeColumn}>
+                  {minutes.map((minute) => (
+                    <TouchableOpacity
+                      key={`minute-${minute}`}
+                      style={[
+                        styles.timeItem,
+                        selectedMinute === minute && styles.timeItemSelectedMinute,
+                      ]}
+                      onPress={() => setSelectedMinute(minute)}
+                    >
+                      <Text style={[
+                        styles.timeText,
+                        selectedMinute === minute && styles.timeTextSelected,
+                      ]}>
+                        {minute.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
 
-            {/* Minutes Column */}
-            <View style={styles.timeColumn}>
-              {minutes.map((minute) => (
-                <TouchableOpacity
-                  key={`minute-${minute}`}
-                  style={[
-                    styles.timeItem,
-                    selectedMinute === minute && styles.timeItemSelectedMinute,
-                  ]}
-                  onPress={() => setSelectedMinute(minute)}
-                >
-                  <Text style={[
-                    styles.timeText,
-                    selectedMinute === minute && styles.timeTextSelected,
-                  ]}>
-                    {minute.toString().padStart(2, '0')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Start Button */}
-          <TouchableOpacity 
-            style={styles.startButton}
-            onPress={handleStartSleepTimer}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.startButtonText}>Start</Text>
-          </TouchableOpacity>
+              {/* Start Button */}
+              <TouchableOpacity
+                style={styles.startButton}
+                onPress={handleStartSleepTimer}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.startButtonText}>Start</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
 
@@ -395,6 +470,42 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   startButtonText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  // Countdown styles
+  countdownContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  countdownDisplay: {
+    alignItems: 'center',
+    backgroundColor: colors.backgroundCard,
+    borderRadius: 16,
+    paddingVertical: 32,
+    paddingHorizontal: 40,
+    marginBottom: 24,
+    width: '100%',
+  },
+  countdownText: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 2,
+  },
+  countdownLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 8,
+  },
+  cancelTimerButton: {
+    backgroundColor: '#E74C3C',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+  },
+  cancelTimerText: {
     fontSize: 16,
     color: colors.textPrimary,
     fontWeight: '600',

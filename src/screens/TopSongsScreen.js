@@ -7,11 +7,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 import { SongItem, NowPlayingBar, BottomNavBar, SongBottomSheet, AddToPlaylistSheet } from '../components';
 import colors from '../theme/colors';
@@ -37,7 +37,7 @@ const TopSongsScreen = ({ navigation }) => {
       setSongs(tracks);
     } catch (error) {
       console.error('Error fetching top songs:', error);
-      Alert.alert('Error', 'Could not load songs. Please try again.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Could not load songs. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -90,15 +90,15 @@ const TopSongsScreen = ({ navigation }) => {
   };
 
   const handleAddToPlaylistSuccess = (message) => {
-    Alert.alert('Success', message);
+    Toast.show({ type: 'success', text1: 'Success', text2: message });
   };
 
   const handleAddToFavorites = () => {
-    Alert.alert('Add to Favorites', `"${selectedSong?.title}" added to your favorites!`);
+    Toast.show({ type: 'success', text1: 'Add to Favorites', text2: `"${selectedSong?.title}" added to your favorites!` });
   };
 
   const handleShare = () => {
-    Alert.alert('Share', `Share "${selectedSong?.title}" by ${selectedSong?.artist}\n\nFeature coming soon!`);
+    Toast.show({ type: 'info', text1: 'Share', text2: `Share "${selectedSong?.title}" by ${selectedSong?.artist}` });
   };
 
   const handleTabPress = (tabId) => {

@@ -10,12 +10,12 @@ import {
   Image,
   ActivityIndicator,
   Keyboard,
-  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Toast from 'react-native-toast-message';
 
 import colors from '../theme/colors';
 import { searchTracks } from '../api/musicService';
@@ -113,15 +113,15 @@ const SearchScreen = ({ route, navigation }) => {
   };
 
   const handleAddToPlaylistSuccess = (message) => {
-    Alert.alert('Success', message);
+    Toast.show({ type: 'success', text1: 'Success', text2: message });
   };
 
   const handleAddToFavorites = () => {
-    Alert.alert('Success', `"${selectedSong?.title}" added to favorites!`);
+    Toast.show({ type: 'success', text1: 'Success', text2: `"${selectedSong?.title}" added to favorites!` });
   };
 
   const handleShare = () => {
-    Alert.alert('Share', `Share "${selectedSong?.title}" - Coming soon!`);
+    Toast.show({ type: 'info', text1: 'Share', text2: `Share "${selectedSong?.title}"` });
   };
 
   // Clear search

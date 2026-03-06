@@ -5,10 +5,10 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 import {
   HomeHeader,
@@ -59,7 +59,7 @@ const HomeScreen = ({ navigation }) => {
       setPlaylists(playlistData);
     } catch (error) {
       console.error('Error fetching data:', error.message);
-      Alert.alert('Lỗi', 'Không thể tải dữ liệu. Vui lòng thử lại.');
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không thể tải dữ liệu. Vui lòng thử lại.' });
     } finally {
       setLoading(false);
     }
@@ -108,7 +108,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleSeeAllHotTopics = () => {
-    Alert.alert('See All', 'Navigate to Hot Topics list');
+    Toast.show({ type: 'info', text1: 'See All', text2: 'Navigate to Hot Topics list' });
   };
 
   const handleSeeAllTopSongs = () => {
@@ -120,7 +120,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handlePlaylistPress = (playlist) => {
-    Alert.alert('Playlist', `Open: ${playlist.title}`);
+    Toast.show({ type: 'info', text1: 'Playlist', text2: `Open: ${playlist.title}` });
   };
 
   const handleSongPress = (song, index) => {
@@ -165,15 +165,15 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleAddToPlaylistSuccess = (message) => {
-    Alert.alert('Success', message);
+    Toast.show({ type: 'success', text1: 'Success', text2: message });
   };
 
   const handleAddToFavorites = () => {
-    Alert.alert('Add to Favorites', `"${selectedSong?.title}" added to your favorites!`);
+    Toast.show({ type: 'success', text1: 'Add to Favorites', text2: `"${selectedSong?.title}" added to your favorites!` });
   };
 
   const handleShare = () => {
-    Alert.alert('Share', `Share "${selectedSong?.title}" by ${selectedSong?.artist}\n\nFeature coming soon!`);
+    Toast.show({ type: 'info', text1: 'Share', text2: `Share "${selectedSong?.title}" by ${selectedSong?.artist}` });
   };
 
   const handleTabPress = (tabId) => {
