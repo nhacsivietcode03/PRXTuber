@@ -2,16 +2,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../theme/colors';
 
 const tabs = [
-  { id: 'home', label: 'Home', icon: 'home', iconOutline: 'home-outline' },
-  { id: 'discover', label: 'Discover', icon: 'compass', iconOutline: 'compass-outline' },
-  { id: 'favorites', label: 'Favorites', icon: 'heart', iconOutline: 'heart-outline' },
-  { id: 'settings', label: 'Settings', icon: 'settings', iconOutline: 'settings-outline' },
+  { id: 'HomeScreen', label: 'Home', icon: 'home', iconOutline: 'home-outline' },
+  { id: 'DiscoverScreen', label: 'Discover', icon: 'grid', iconOutline: 'grid-outline' },
+  { id: 'FavoritesScreen', label: 'Favorites', icon: 'heart', iconOutline: 'heart-outline' },
+  { id: 'SettingsScreen', label: 'Settings', icon: 'person', iconOutline: 'person-outline' },
 ];
 
-const BottomNavBar = ({ activeTab = 'home', onTabPress }) => {
+const BottomNavBar = ({ activeTab = 'HomeScreen', onTabPress }) => {
   return (
     <View style={styles.container}>
       <View style={styles.tabsContainer}>
@@ -29,13 +30,17 @@ const BottomNavBar = ({ activeTab = 'home', onTabPress }) => {
                 name={isActive ? tab.icon : tab.iconOutline}
                 size={24}
                 color={isActive ? colors.tabActive : colors.tabInactive}
+                style={isActive ? styles.activeIcon : null}
               />
               {/* Active indicator dot */}
-              {isActive && <View style={styles.activeDot} />}
-              {/* Uncomment for labels */}
-              {/* <Text style={[styles.label, isActive && styles.labelActive]}>
-                {tab.label}
-              </Text> */}
+              {isActive && (
+                <LinearGradient
+                  colors={colors.primaryGradient}
+                  style={styles.activeDot}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                />
+              )}
             </TouchableOpacity>
           );
         })}
@@ -51,6 +56,12 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.background,
     paddingBottom: 8,
+    // Top shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 25,
+    elevation: 20, // For Android
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -68,8 +79,13 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.textPrimary,
-    marginTop: 4,
+    position: 'absolute',
+    bottom: -4,
+  },
+  activeIcon: {
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
   },
   label: {
     fontSize: 10,

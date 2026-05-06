@@ -21,14 +21,14 @@ import {
   AddToPlaylistSheet,
 } from '../components';
 import colors from '../theme/colors';
-import { getTopTracks, getHotTracks, getPlaylists } from '../api/musicService';
+import { getTopTracks, getHotTracks, getPlaylists, getArtists, getTracksByGenre, getTracksByPlaylist, getAppFeatures } from '../api/musicService';
 import { useMusicPlayer } from '../context';
-
 const HomeScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [banners, setBanners] = useState([]);
   const [songs, setSongs] = useState([]);
-  const [playlists, setPlaylists] = useState([]);
+  const [discoverItems, setDiscoverItems] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSong, setSelectedSong] = useState(null);
@@ -36,10 +36,10 @@ const HomeScreen = ({ navigation }) => {
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
 
   // Use global music player context
-  const { 
-    currentSong, 
-    isPlaying, 
-    playSong, 
+  const {
+    currentSong,
+    isPlaying,
+    playSong,
     togglePlayPause,
     progress,
   } = useMusicPlayer();
@@ -48,15 +48,32 @@ const HomeScreen = ({ navigation }) => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [hotTracks, topTracks, playlistData] = await Promise.all([
+      const [hotTracks, topTracks, artistsData] = await Promise.all([
         getHotTracks(5),
         getTopTracks(6),
-        getPlaylists(6),
+        getArtists(20),
       ]);
+
+      let featuresPlaylists = await getAppFeatures();
+      
+      // Fallback to Jamendo playlists if app features fail
+      if (!featuresPlaylists || featuresPlaylists.length === 0) {
+        featuresPlaylists = await getPlaylists(6);
+      }
+
+      const mappedArtists = artistsData
+        .filter(artist => artist.image && artist.image.trim() !== '')
+        .slice(0, 12) // Ensure we show around 12 as requested
+        .map(artist => ({
+          ...artist,
+          title: artist.name,
+          subtitle: 'Artist'
+        }));
 
       setBanners(hotTracks);
       setSongs(topTracks);
-      setPlaylists(playlistData);
+      setDiscoverItems(featuresPlaylists);
+      setArtists(mappedArtists);
     } catch (error) {
       console.error('Error fetching data:', error.message);
       Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không thể tải dữ liệu. Vui lòng thử lại.' });
@@ -78,11 +95,11 @@ const HomeScreen = ({ navigation }) => {
 
   // Handlers
   const handleSearchPress = () => {
-    navigation.navigate('Search');
+    navigation.navigate('SearchScreen');
   };
 
   const handleBannerPress = (banner) => {
-    navigation.navigate('TopicDetail', { 
+    navigation.navigate('TopicDetailScreen', {
       topic: {
         id: banner.id,
         title: banner.title,
@@ -95,7 +112,7 @@ const HomeScreen = ({ navigation }) => {
 
   const handlePlayBanner = (banner) => {
     // Navigate and auto-play
-    navigation.navigate('TopicDetail', { 
+    navigation.navigate('TopicDetailScreen', {
       topic: {
         id: banner.id,
         title: banner.title,
@@ -112,20 +129,54 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleSeeAllTopSongs = () => {
-    navigation.navigate('TopSongs');
+    navigation.navigate('TopSongsScreen');
   };
 
   const handleSeeAllDiscover = () => {
-    navigation.navigate('Discover');
+    navigation.navigate('DiscoverScreen', { features: discoverItems, title: 'Featured' });
   };
 
-  const handlePlaylistPress = (playlist) => {
-    Toast.show({ type: 'info', text1: 'Playlist', text2: `Open: ${playlist.title}` });
+  const handleSeeAllArtists = () => {
+    navigation.navigate('ArtistListScreen', { title: 'Artists' });
+  };
+
+  const handleDiscoverItemPress = async (item) => {
+    try {
+      Toast.show({ type: 'info', text1: 'Loading Playlist...', text2: `Fetching tracks for ${item.title}` });
+      
+      let tracks = [];
+      if (item.type === 'playlist' && item.originalId) {
+        tracks = await getTracksByPlaylist(item.originalId);
+      } else if (item.genre) {
+        tracks = await getTracksByGenre(item.genre, 30, 'popularity_month');
+      }
+      
+      if (tracks && tracks.length > 0) {
+        // Play the first track and queue the rest
+        playSong(tracks[0], tracks);
+      } else {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'No tracks found for this playlist.' });
+      }
+    } catch (error) {
+      console.error('Playlist fetch error:', error);
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load playlist.' });
+    }
+  };
+
+  const handleArtistPress = (item) => {
+    navigation.navigate('TopicDetailScreen', {
+      topic: {
+        id: item.id,
+        title: item.title,
+        image: item.image,
+        isArtist: true,
+      }
+    });
   };
 
   const handleSongPress = (song, index) => {
     // Navigate to PlayScreen - context will handle playback
-    navigation.navigate('Play', { song, playlist: songs });
+    navigation.navigate('PlayScreen', { song, playlist: songs });
   };
 
   const handlePlayPause = () => {
@@ -134,7 +185,7 @@ const HomeScreen = ({ navigation }) => {
 
   const handleNowPlayingPress = () => {
     if (currentSong) {
-      navigation.navigate('Play', { song: currentSong, playlist: songs });
+      navigation.navigate('PlayScreen', { song: currentSong, playlist: songs });
     }
   };
 
@@ -178,15 +229,7 @@ const HomeScreen = ({ navigation }) => {
 
   const handleTabPress = (tabId) => {
     setActiveTab(tabId);
-    if (tabId === 'discover') {
-      navigation.navigate('Discover');
-    } else if (tabId === 'search') {
-      navigation.navigate('Search');
-    } else if (tabId === 'favorites') {
-      navigation.navigate('Favorites');
-    } else if (tabId === 'settings') {
-      navigation.navigate('Settings');
-    }
+    // Navigation is now handled by the CustomTabBar in AppNavigator
   };
 
   return (
@@ -232,11 +275,23 @@ const HomeScreen = ({ navigation }) => {
           maxItems={5}
         />
 
-        {/* Discover Section */}
+        {/* Featured Playlists Section */}
         <Discover
-          playlists={playlists}
-          onPlaylistPress={handlePlaylistPress}
+          title="Featured"
+          variant="radio"
+          playlists={discoverItems}
+          onPlaylistPress={handleDiscoverItemPress}
           onSeeAllPress={handleSeeAllDiscover}
+          loading={loading}
+        />
+
+        {/* Artists Section */}
+        <Discover
+          title="Artists"
+          variant="artist"
+          playlists={artists}
+          onPlaylistPress={handleArtistPress}
+          onSeeAllPress={handleSeeAllArtists}
           loading={loading}
         />
 
@@ -244,16 +299,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* Now Playing Bar */}
-      <NowPlayingBar
-        onPress={handleNowPlayingPress}
-      />
-
-      {/* Bottom Navigation */}
-      <BottomNavBar
-        activeTab={activeTab}
-        onTabPress={handleTabPress}
-      />
+      {/* Now Playing Bar and Bottom Navigation are now handled by AppNavigator's CustomTabBar */}
 
       {/* Song Bottom Sheet */}
       <SongBottomSheet

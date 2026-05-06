@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 
-import { SongItem, NowPlayingBar, BottomNavBar, SongBottomSheet, AddToPlaylistSheet } from '../components';
+import { SongItem, SongBottomSheet, AddToPlaylistSheet } from '../components';
 import colors from '../theme/colors';
 import { getTopTracks } from '../api/musicService';
 import { useMusicPlayer } from '../context';
@@ -75,13 +75,13 @@ const TopSongsScreen = ({ navigation }) => {
 
   const handleSongPress = (song, index) => {
     // Navigate to PlayScreen - context will handle playback
-    navigation.navigate('Play', { song, playlist: songs });
+    navigation.navigate('PlayScreen', { song, playlist: songs });
   };
 
   const handleNowPlayingPress = () => {
     // Navigate to full player screen
     if (currentSong) {
-      navigation.navigate('Play', { song: currentSong, playlist: songs });
+      navigation.navigate('PlayScreen', { song: currentSong, playlist: songs });
     }
   };
 
@@ -183,16 +183,7 @@ const TopSongsScreen = ({ navigation }) => {
         />
       )}
 
-      {/* Now Playing Bar */}
-      <NowPlayingBar
-        onPress={handleNowPlayingPress}
-      />
 
-      {/* Bottom Navigation */}
-      <BottomNavBar
-        activeTab={activeTab}
-        onTabPress={handleTabPress}
-      />
 
       {/* Song Bottom Sheet */}
       <SongBottomSheet

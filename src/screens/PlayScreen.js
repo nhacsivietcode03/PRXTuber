@@ -147,7 +147,7 @@ const PlayScreen = ({ route, navigation }) => {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+            <Ionicons name="chevron-down" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuButton} onPress={togglePlaylistSheet}>

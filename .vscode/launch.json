@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run iOS Simulator",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "ios"
+      ],
+      "env": {
+        "EXPO_UNSTABLE_MCP_SERVER": "1"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Run Android Emulator",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "android"
+      ],
+      "env": {
+        "EXPO_UNSTABLE_MCP_SERVER": "1"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Expo: Attach",
+      "type": "expo",
+      "request": "attach",
+      "projectRoot": "${workspaceFolder}"
+    }
+  ]
+}
