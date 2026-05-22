@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1062363191284",
+    "project_id": "prxtuber-14f76",
+    "storage_bucket": "prxtuber-14f76.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062363191284:android:a4fa2704738cb17cc74ba1",
+        "android_client_info": {
+          "package_name": "com.projectmentor.prxtuber"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4hF3PWBYBkveTAuF9XP3ejwAa47bzG6U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
