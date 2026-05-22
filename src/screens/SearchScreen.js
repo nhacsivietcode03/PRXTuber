@@ -108,7 +108,7 @@ const SearchScreen = ({ route, navigation }) => {
       setShowAddToPlaylist(true);
       return;
     }
-    navigation.navigate('Play', { song, playlist: searchResults });
+    navigation.navigate('PlayScreen', { song, playlist: searchResults });
   };
 
   // Handle more press on song item

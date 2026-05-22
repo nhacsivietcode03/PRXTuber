@@ -36,19 +36,11 @@ const FavoritesScreen = ({ navigation }) => {
 
   const handleTabPress = (tabId) => {
     setActiveTab(tabId);
-    if (tabId === 'home') {
-      navigation.navigate('Home');
-    } else if (tabId === 'discover') {
-      navigation.navigate('Discover');
-    } else if (tabId === 'search') {
-      navigation.navigate('Search');
-    } else if (tabId === 'settings') {
-      navigation.navigate('Settings');
-    }
+    // Navigation is now handled by the CustomTabBar in AppNavigator
   };
 
   const handlePlaylistPress = (playlist) => {
-    navigation.navigate('PlaylistDetail', { playlist });
+    navigation.navigate('PlaylistDetailScreen', { playlist });
   };
 
   const handleCreatePlaylist = () => {
@@ -192,11 +184,7 @@ const FavoritesScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Bottom Navigation */}
-      <BottomNavBar
-        activeTab={activeTab}
-        onTabPress={handleTabPress}
-      />
+      {/* Bottom Navigation is now handled by AppNavigator's CustomTabBar */}
     </View>
   );
 };

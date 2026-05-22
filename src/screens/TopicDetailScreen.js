@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 
-import { SongItem, NowPlayingBar, BottomNavBar, SongBottomSheet, AddToPlaylistSheet } from '../components';
+import { SongItem, SongBottomSheet, AddToPlaylistSheet } from '../components';
 import colors from '../theme/colors';
 import { getTracksByGenre, getTopTracks, getTracksByArtist } from '../api/musicService';
 import { useMusicPlayer } from '../context';
@@ -96,13 +96,13 @@ const TopicDetailScreen = ({ route, navigation }) => {
 
   const handleSongPress = (song, index) => {
     // Navigate to PlayScreen - context will handle playback
-    navigation.navigate('Play', { song, playlist: songs });
+    navigation.navigate('PlayScreen', { song, playlist: songs });
   };
 
   const handleNowPlayingPress = () => {
     // Navigate to full player screen
     if (currentSong) {
-      navigation.navigate('Play', { song: currentSong, playlist: songs });
+      navigation.navigate('PlayScreen', { song: currentSong, playlist: songs });
     }
   };
 
@@ -253,16 +253,7 @@ const TopicDetailScreen = ({ route, navigation }) => {
         />
       )}
 
-      {/* Now Playing Bar */}
-      <NowPlayingBar
-        onPress={handleNowPlayingPress}
-      />
 
-      {/* Bottom Navigation */}
-      <BottomNavBar
-        activeTab={activeTab}
-        onTabPress={handleTabPress}
-      />
 
       {/* Song Bottom Sheet */}
       <SongBottomSheet

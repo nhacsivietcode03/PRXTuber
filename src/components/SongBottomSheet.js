@@ -14,17 +14,17 @@ import colors from '../theme/colors';
 
 const { height, width } = Dimensions.get('window');
 
-const SongBottomSheet = ({ 
-  visible, 
-  song, 
+const SongBottomSheet = ({
+  visible,
+  song,
   onClose,
   onPlay,
   onAddToPlaylist,
   onAddToFavorites,
   onShare,
 }) => {
-  console.log('SongBottomSheet render:', { visible, song });
-  
+  // console.log('SongBottomSheet render:', { visible, song });
+
   if (!visible) return null;
   if (!song) {
     console.log('SongBottomSheet: song is null/undefined');
@@ -46,7 +46,7 @@ const SongBottomSheet = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.overlayBackground}
           activeOpacity={1}
           onPress={onClose}
@@ -55,7 +55,7 @@ const SongBottomSheet = ({
           {/* Top Row: Heart - Album Cover - Share */}
           <View style={styles.topRow}>
             {/* Heart Icon */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.topIconButton}
               onPress={() => handleAction(onAddToFavorites)}
             >
@@ -65,13 +65,13 @@ const SongBottomSheet = ({
             </TouchableOpacity>
 
             {/* Album Cover */}
-            <Image 
+            <Image
               source={{ uri: song.image || 'https://via.placeholder.com/100' }}
               style={styles.albumCover}
             />
 
             {/* Share Icon */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.topIconButton}
               onPress={() => handleAction(onShare)}
             >
@@ -94,7 +94,7 @@ const SongBottomSheet = ({
           {/* Action Buttons */}
           <View style={styles.actions}>
             {/* Play */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleAction(onPlay)}
             >
@@ -105,7 +105,7 @@ const SongBottomSheet = ({
             </TouchableOpacity>
 
             {/* Add to Playlist */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleAction(onAddToPlaylist)}
             >
@@ -117,7 +117,7 @@ const SongBottomSheet = ({
           </View>
 
           {/* Cancel Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.cancelButton}
             onPress={onClose}
           >

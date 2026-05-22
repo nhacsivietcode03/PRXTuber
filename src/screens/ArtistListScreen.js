@@ -18,7 +18,7 @@ import Toast from 'react-native-toast-message';
 
 import { BottomNavBar } from '../components';
 import colors from '../theme/colors';
-import { getAppFeatures, getPlaylists, getTracksByPlaylist, getTracksByGenre } from '../api/musicService';
+import { getArtists, getTracksByPlaylist, getTracksByGenre } from '../api/musicService';
 import { useMusicPlayer } from '../context';
 
 const { width } = Dimensions.get('window');
@@ -28,7 +28,7 @@ const ITEM_WIDTH = (width - (ITEM_SPACING * (COLUMN_COUNT + 1))) / COLUMN_COUNT;
 
 const ARTIST_LIMIT = 15;
 
-const DiscoverScreen = ({ route, navigation }) => {
+const ArtistListScreen = ({ route, navigation }) => {
   const { features, title: customTitle } = route?.params || {};
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +39,8 @@ const DiscoverScreen = ({ route, navigation }) => {
 
   const { playSong } = useMusicPlayer();
 
-  // Fetch features
-  const fetchFeatures = useCallback(async () => {
+  // Fetch artists
+  const fetchArtists = useCallback(async () => {
     if (features) {
       setArtists(features);
       setHasMore(false);
@@ -50,43 +50,52 @@ const DiscoverScreen = ({ route, navigation }) => {
 
     try {
       setLoading(true);
-      let data = await getAppFeatures();
-      if (!data || data.length === 0) {
-        data = await getPlaylists(15);
-      }
-      setArtists(data || []);
-      setHasMore(false);
+      const data = await getArtists(ARTIST_LIMIT, 0);
+      setArtists(data);
+      setHasMore(data.length >= ARTIST_LIMIT);
     } catch (error) {
-      console.error('Error fetching features:', error);
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Could not load features. Please try again.' });
+      console.error('Error fetching artists:', error);
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Could not load artists. Please try again.' });
     } finally {
       setLoading(false);
     }
-  }, [features]);
+  }, []);
 
   const loadMore = useCallback(async () => {
-    // No pagination for features currently
-    return;
-  }, []);
+    if (features) return;
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const newData = await getArtists(ARTIST_LIMIT, artists.length);
+      if (newData.length < ARTIST_LIMIT) setHasMore(false);
+      if (newData.length > 0) {
+        setArtists(prev => [...prev, ...newData]);
+      }
+    } catch (error) {
+      console.error('Error loading more artists:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, artists.length]);
 
   // Refresh handler
   const onRefresh = useCallback(async () => {
     if (features) return;
     setRefreshing(true);
-    let data = await getAppFeatures();
-    if (!data || data.length === 0) {
-      data = await getPlaylists(15);
-    }
-    setArtists(data || []);
-    setHasMore(false);
+    const data = await getArtists(ARTIST_LIMIT, 0);
+    setArtists(data);
+    setHasMore(data.length >= ARTIST_LIMIT);
     setRefreshing(false);
-  }, [features]);
+  }, []);
 
   useEffect(() => {
-    fetchFeatures();
-  }, [fetchFeatures]);
+    fetchArtists();
+  }, [fetchArtists]);
 
   // Handlers
+  const handleBack = () => {
+    navigation.goBack();
+  };
 
   const handleArtistPress = async (artist) => {
     if (features) {
@@ -112,13 +121,13 @@ const DiscoverScreen = ({ route, navigation }) => {
       return;
     }
 
-    // Not an artist or track list, maybe handle generic playlist/feature navigation here
-    // But typically discover items will be caught by the block above because they have type === 'playlist'
+    // Navigate to artist detail with their tracks
     navigation.navigate('TopicDetailScreen', {
       topic: {
         id: artist.id,
-        title: artist.title || artist.name,
+        title: artist.name,
         image: artist.image,
+        isArtist: true,
       }
     });
   };
@@ -141,10 +150,24 @@ const DiscoverScreen = ({ route, navigation }) => {
 
   const defaultArtistImage = 'https://via.placeholder.com/200/333333/02CDAC?text=Artist';
 
+  const getInitials = (name) => {
+    if (!name) return '?';
+    const words = name.trim().split(/\s+/);
+    if (words.length === 1) {
+      return words[0].substring(0, 1).toUpperCase();
+    }
+    return words
+      .map(word => word[0])
+      .join('')
+      .substring(0, 3)
+      .toUpperCase();
+  };
+
   const renderArtistItem = ({ item, index }) => {
     const bgColor = bgColors[index % bgColors.length];
-    const imageUri = item.image && item.image.trim() !== '' ? item.image : defaultArtistImage;
+    const hasImage = item.image && item.image.trim() !== '';
     const name = item.title || item.name;
+    const initial = getInitials(name);
 
     return (
       <TouchableOpacity 
@@ -153,12 +176,24 @@ const DiscoverScreen = ({ route, navigation }) => {
         activeOpacity={0.7}
       >
         <View style={[styles.artistImageContainer, { backgroundColor: bgColor }]}>
-          <Image 
-            source={{ uri: imageUri }}
-            style={styles.artistImage}
-            resizeMode="cover"
-            defaultSource={{ uri: defaultArtistImage }}
-          />
+          {hasImage ? (
+            <Image 
+              source={{ uri: item.image }}
+              style={styles.artistImage}
+              resizeMode="cover"
+              defaultSource={{ uri: defaultArtistImage }}
+            />
+          ) : (
+            <View style={styles.initialContainer}>
+              <Text 
+                style={styles.initialText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {initial}
+              </Text>
+            </View>
+          )}
         </View>
         <Text style={styles.artistName} numberOfLines={1}>
           {name}
@@ -179,7 +214,12 @@ const DiscoverScreen = ({ route, navigation }) => {
       {/* Header */}
       <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.header}>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={handleBack}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>{customTitle || 'Discover'}</Text>
           <TouchableOpacity 
             style={styles.searchButton}
@@ -217,8 +257,8 @@ const DiscoverScreen = ({ route, navigation }) => {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="musical-notes" size={48} color={colors.textSecondary} />
-              <Text style={styles.emptyText}>No features found</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={fetchFeatures}>
+              <Text style={styles.emptyText}>No artists found</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchArtists}>
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>
@@ -306,7 +346,17 @@ const styles = StyleSheet.create({
   artistImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+  },
+  initialContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initialText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
   artistName: {
     fontSize: 12,
@@ -340,4 +390,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DiscoverScreen;
+export default ArtistListScreen;

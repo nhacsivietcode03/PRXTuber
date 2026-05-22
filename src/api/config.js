@@ -4,8 +4,10 @@
 export const JAMENDO_CONFIG = {
   BASE_URL: 'https://api.jamendo.com/v3.0',
   // Đăng ký tại https://devportal.jamendo.com/ để lấy client_id
-    CLIENT_ID: '8ecb361a', // TODO: Thay bằng client_id thật của bạn
+  CLIENT_ID: '8ecb361a', // TODO: Thay bằng client_id thật của bạn
   FORMAT: 'json',
+  ENABLE_REQUEST_LOGGING: true,
+  ENABLE_RESPONSE_LOGGING: false, // Thường body response rất dài nên mặc định tắt
 };
 
 export default JAMENDO_CONFIG;

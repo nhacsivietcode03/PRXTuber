@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 
-import { BottomNavBar } from '../components';
+
 import colors from '../theme/colors';
 import { usePlaylist, useMusicPlayer } from '../context';
 
@@ -61,30 +61,30 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
   const handleTabPress = (tabId) => {
     setActiveTab(tabId);
     if (tabId === 'home') {
-      navigation.navigate('Home');
+      navigation.navigate('HomeScreen');
     } else if (tabId === 'discover') {
-      navigation.navigate('Discover');
+      navigation.navigate('DiscoverScreen');
     } else if (tabId === 'favorites') {
-      navigation.navigate('Favorites');
+      navigation.navigate('FavoritesScreen');
     } else if (tabId === 'settings') {
-      navigation.navigate('Settings');
+      navigation.navigate('SettingsScreen');
     }
   };
 
   const handlePlayAll = () => {
     if (songs.length > 0) {
       playSong(songs[0], songs);
-      navigation.navigate('Play', { song: songs[0], playlist: songs });
+      navigation.navigate('PlayScreen', { song: songs[0], playlist: songs });
     }
   };
 
   const handleAddSong = () => {
     // Navigate to search to add songs
-    navigation.navigate('Search', { addToPlaylist: currentPlaylist });
+    navigation.navigate('SearchScreen', { addToPlaylist: currentPlaylist });
   };
 
   const handleSongPress = (song, index) => {
-    navigation.navigate('Play', { song, playlist: songs });
+    navigation.navigate('PlayScreen', { song, playlist: songs });
   };
 
   const handleSongMore = (song) => {
@@ -404,11 +404,7 @@ const PlaylistDetailScreen = ({ route, navigation }) => {
         </View>
       </Modal>
 
-      {/* Bottom Navigation */}
-      <BottomNavBar
-        activeTab={activeTab}
-        onTabPress={handleTabPress}
-      />
+
     </View>
   );
 };

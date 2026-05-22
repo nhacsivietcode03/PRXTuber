@@ -8,41 +8,58 @@ import {
 } from 'react-native';
 import SectionHeader from './SectionHeader';
 import DiscoverCard from './DiscoverCard';
+import RadioCard from './RadioCard';
 import colors from '../theme/colors';
 
 const Discover = ({ 
+  title = "Discover",
   playlists = [], 
   onPlaylistPress, 
   onSeeAllPress,
   loading = false,
+  variant = 'default',
 }) => {
   
   // Skeleton loading
   const renderSkeleton = () => (
     <View style={styles.skeletonContainer}>
       {[1, 2, 3].map((item) => (
-        <View key={item} style={styles.skeletonCard}>
-          <View style={styles.skeletonImage} />
-          <View style={styles.skeletonTitle} />
-          <View style={styles.skeletonSubtitle} />
+        <View key={item} style={[
+          styles.skeletonCard, 
+          variant === 'radio' && styles.skeletonCardRadio,
+          variant === 'artist' && styles.skeletonCardArtist
+        ]}>
+          <View style={[
+            styles.skeletonImage,
+            variant === 'radio' && styles.skeletonImageRadio,
+            variant === 'artist' && styles.skeletonImageArtist
+          ]} />
+          <View style={[styles.skeletonTitle, (variant === 'artist' || variant === 'radio') && {alignSelf: 'center'}]} />
+          <View style={[styles.skeletonSubtitle, (variant === 'artist' || variant === 'radio') && {alignSelf: 'center'}]} />
         </View>
       ))}
     </View>
   );
 
-  const renderItem = ({ item }) => (
-    <DiscoverCard
-      title={item.title}
-      subtitle={item.trackCount ? `${item.trackCount} tracks` : item.subtitle}
-      image={item.image}
-      onPress={() => onPlaylistPress?.(item)}
-    />
-  );
+  const renderItem = ({ item }) => {
+    const trackCount = item.tracks?.length || item.trackCount;
+    const itemSubtitle = trackCount ? `${trackCount} tracks` : item.subtitle;
+    
+    return (
+      <DiscoverCard
+        title={item.title}
+        subtitle={itemSubtitle}
+        image={item.image}
+        onPress={() => onPlaylistPress?.(item)}
+        variant={variant}
+      />
+    );
+  };
 
   return (
     <View style={styles.container}>
       <SectionHeader 
-        title="Discover"
+        title={title}
         onSeeAllPress={onSeeAllPress}
         showSeeAll={true}
       />
@@ -81,8 +98,17 @@ const styles = StyleSheet.create({
   skeletonImage: {
     width: 140,
     height: 140,
+    backgroundColor: colors.surface,
     borderRadius: 8,
-    backgroundColor: colors.backgroundCard,
+    marginBottom: 8,
+  },
+  skeletonImageRadio: {
+    width: 150,
+    height: 150,
+    borderRadius: 12,
+  },
+  skeletonImageArtist: {
+    borderRadius: 70,
   },
   skeletonTitle: {
     width: 100,

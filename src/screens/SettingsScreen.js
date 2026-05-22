@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 
-import { BottomNavBar } from '../components';
+import { BottomNavBar, SleepTimerSheet } from '../components';
 import colors from '../theme/colors';
 import { useMusicPlayer } from '../context';
 
@@ -27,12 +27,13 @@ const SettingsScreen = ({ navigation }) => {
   const [selectedMinute, setSelectedMinute] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [showSleepTimer, setShowSleepTimer] = useState(false);
   const timerRef = useRef(null);
 
   const { isPlaying, togglePlayPause } = useMusicPlayer();
 
-  const hours = [4, 5, 6, 7, 8];
-  const minutes = [58, 59, 0, 1, 2];
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const minutes = Array.from({ length: 60 }, (_, i) => i);
 
   // Countdown effect
   useEffect(() => {
@@ -74,15 +75,7 @@ const SettingsScreen = ({ navigation }) => {
 
   const handleTabPress = (tabId) => {
     setActiveTab(tabId);
-    if (tabId === 'home') {
-      navigation.navigate('Home');
-    } else if (tabId === 'discover') {
-      navigation.navigate('Discover');
-    } else if (tabId === 'favorites') {
-      navigation.navigate('Favorites');
-    } else if (tabId === 'search') {
-      navigation.navigate('Search');
-    }
+    // Navigation is now handled by the CustomTabBar in AppNavigator
   };
 
   const handleStreamQuality = () => {
@@ -134,6 +127,7 @@ const SettingsScreen = ({ navigation }) => {
     }
     setRemainingSeconds(totalSeconds);
     setTimerActive(true);
+    Toast.show({ type: 'success', text1: 'Sleep Timer', text2: `Timer set for ${selectedHour}h ${selectedMinute}m` });
   };
 
   const handleCancelTimer = () => {
@@ -160,18 +154,6 @@ const SettingsScreen = ({ navigation }) => {
       {value && (
         <Text style={styles.settingValue}>{value}</Text>
       )}
-    </TouchableOpacity>
-  );
-
-  const renderTimePickerItem = (value, isSelected, onPress, isHour = true) => (
-    <TouchableOpacity
-      style={[styles.timeItem, isSelected && styles.timeItemSelected]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.timeText, isSelected && styles.timeTextSelected]}>
-        {isHour ? `${value.toString().padStart(2, '0')} h` : `${value.toString().padStart(2, '0')} m`}
-      </Text>
     </TouchableOpacity>
   );
 
@@ -229,111 +211,33 @@ const SettingsScreen = ({ navigation }) => {
             title: 'Privacy policy',
             onPress: handlePrivacyPolicy,
           })}
+
+          {renderSettingItem({
+            icon: 'time-outline',
+            IconComponent: Ionicons,
+            title: 'Sleep timer',
+            value: timerActive ? 'Active' : 'Off',
+            onPress: () => setShowSleepTimer(true),
+          })}
         </View>
 
-        {/* Sleep Timer Section */}
-        <View style={styles.sleepTimerContainer}>
-          <View style={styles.sleepTimerHeader}>
-            <Ionicons name="time-outline" size={20} color={colors.textPrimary} />
-            <Text style={styles.sleepTimerTitle}>Sleep timer</Text>
-          </View>
-
-          {timerActive ? (
-            /* Countdown View */
-            <View style={styles.countdownContainer}>
-              <View style={styles.countdownDisplay}>
-                <Text style={styles.countdownText}>{formatCountdown()}</Text>
-                <Text style={styles.countdownLabel}>remaining</Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.cancelTimerButton}
-                onPress={handleCancelTimer}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.cancelTimerText}>Cancel timer</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            /* Time Picker View */
-            <>
-              <View style={styles.timePickerContainer}>
-                {/* Hours Column */}
-                <View style={styles.timeColumn}>
-                  {hours.map((hour) => (
-                    <TouchableOpacity
-                      key={`hour-${hour}`}
-                      style={[
-                        styles.timeItem,
-                        selectedHour === hour && styles.timeItemSelectedHour,
-                      ]}
-                      onPress={() => setSelectedHour(hour)}
-                    >
-                      <Text style={[
-                        styles.timeText,
-                        selectedHour === hour && styles.timeTextSelected,
-                      ]}>
-                        {hour.toString().padStart(2, '0')}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Selected Time Display */}
-                <View style={styles.selectedTimeContainer}>
-                  <View style={styles.selectedTimeBox}>
-                    <Text style={styles.selectedTimeText}>
-                      {selectedHour.toString().padStart(2, '0')} h
-                    </Text>
-                  </View>
-                  <Text style={styles.timeSeparator}>:</Text>
-                  <View style={styles.selectedTimeBox}>
-                    <Text style={styles.selectedTimeText}>
-                      {selectedMinute.toString().padStart(2, '0')} m
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Minutes Column */}
-                <View style={styles.timeColumn}>
-                  {minutes.map((minute) => (
-                    <TouchableOpacity
-                      key={`minute-${minute}`}
-                      style={[
-                        styles.timeItem,
-                        selectedMinute === minute && styles.timeItemSelectedMinute,
-                      ]}
-                      onPress={() => setSelectedMinute(minute)}
-                    >
-                      <Text style={[
-                        styles.timeText,
-                        selectedMinute === minute && styles.timeTextSelected,
-                      ]}>
-                        {minute.toString().padStart(2, '0')}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Start Button */}
-              <TouchableOpacity
-                style={styles.startButton}
-                onPress={handleStartSleepTimer}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.startButtonText}>Start</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+        <SleepTimerSheet
+          visible={showSleepTimer}
+          onClose={() => setShowSleepTimer(false)}
+          timerActive={timerActive}
+          selectedHour={selectedHour}
+          setSelectedHour={setSelectedHour}
+          selectedMinute={selectedMinute}
+          setSelectedMinute={setSelectedMinute}
+          formatCountdown={formatCountdown}
+          onStartTimer={handleStartSleepTimer}
+          onCancelTimer={handleCancelTimer}
+          hours={hours}
+          minutes={minutes}
+        />
       </ScrollView>
 
-      {/* Bottom Navigation */}
-      <BottomNavBar
-        activeTab={activeTab}
-        onTabPress={handleTabPress}
-      />
+      {/* Bottom Navigation is now handled by AppNavigator's CustomTabBar */}
     </View>
   );
 };
@@ -391,124 +295,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '500',
-  },
-  // Sleep Timer Styles
-  sleepTimerContainer: {
-    marginTop: 8,
-    paddingHorizontal: 16,
-  },
-  sleepTimerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundCard,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 16,
-  },
-  sleepTimerTitle: {
-    fontSize: 16,
-    color: colors.textPrimary,
-    marginLeft: 12,
-  },
-  timePickerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  timeColumn: {
-    alignItems: 'center',
-  },
-  timeItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  timeItemSelectedHour: {
-    // Selected state handled by selectedTimeContainer
-  },
-  timeItemSelectedMinute: {
-    // Selected state handled by selectedTimeContainer
-  },
-  timeText: {
-    fontSize: 18,
-    color: colors.textSecondary,
-    fontWeight: '400',
-  },
-  timeTextSelected: {
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  selectedTimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  selectedTimeBox: {
-    paddingHorizontal: 8,
-  },
-  selectedTimeText: {
-    fontSize: 16,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  timeSeparator: {
-    fontSize: 16,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    marginHorizontal: 4,
-  },
-  startButton: {
-    backgroundColor: '#E74C3C',
-    borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 48,
-    alignSelf: 'center',
-    marginTop: 24,
-  },
-  startButtonText: {
-    fontSize: 16,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  // Countdown styles
-  countdownContainer: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  countdownDisplay: {
-    alignItems: 'center',
-    backgroundColor: colors.backgroundCard,
-    borderRadius: 16,
-    paddingVertical: 32,
-    paddingHorizontal: 40,
-    marginBottom: 24,
-    width: '100%',
-  },
-  countdownText: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: 2,
-  },
-  countdownLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 8,
-  },
-  cancelTimerButton: {
-    backgroundColor: '#E74C3C',
-    borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 48,
-  },
-  cancelTimerText: {
-    fontSize: 16,
-    color: colors.textPrimary,
-    fontWeight: '600',
   },
 });
 

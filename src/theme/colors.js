@@ -27,7 +27,7 @@ export const colors = {
   
   // Tab bar
   tabActive: '#FFFFFF',
-  tabInactive: '#9E9E9E',
+  tabInactive: '#565656',
   
   // Status
   success: '#4CAF50',

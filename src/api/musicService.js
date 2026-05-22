@@ -17,7 +17,7 @@ export async function getTopTracks(limit = 10, order = 'popularity_total', offse
         imagesize: 200,
       },
     });
-    
+
     return data?.results?.map(track => ({
       id: track.id,
       title: track.name,
@@ -51,12 +51,12 @@ export async function getHotTracks(limit = 5) {
         include: 'musicinfo',
       },
     });
-    
+
     return data?.results?.map(track => {
       // Get genre from musicinfo tags
       const genres = track.musicinfo?.tags?.genres || [];
       const firstGenre = genres[0] || null;
-      
+
       return {
         id: track.id,
         title: track.name,
@@ -75,49 +75,98 @@ export async function getHotTracks(limit = 5) {
 }
 
 /**
- * Get playlists/collections for Discover section
- * Using tracks with different tags to create "virtual playlists"
+ * Get featured playlists from our own JSON file (app features)
+ * Fallback to Jamendo playlists if it fails
+ */
+export async function getAppFeatures() {
+  try {
+    const { data } = await jamendoClient.get('https://prxtuber-26.web.app/features.json', {
+      params: {} // Override default params if necessary, but jamendoClient has them global
+    });
+    
+    return data.map(item => ({
+      ...item,
+      title: item.name ? item.name.replace(/&amp;/g, '&') : '',
+      image: item.cover?.custom || item.cover?.big?.image1?.size600 || null,
+      subtitle: 'Featured',
+      originalId: item.id,
+      type: 'playlist'
+    }));
+  } catch (error) {
+    console.error('getAppFeatures error:', error);
+    // Fallback logic will be handled in the caller (HomeScreen)
+    return null;
+  }
+}
+
+/**
+ * Get playlists/collections for Discover section (previously Radio)
  * @param {number} limit - Number of items
  */
-export async function getPlaylists(limit = 6) {
+export async function getPlaylists(limit = 12) {
   try {
-    // Fetch tracks from different genres to create discover collections
-    const genres = ['electronic', 'pop', 'rock', 'jazz', 'hiphop', 'relaxation'];
-    const results = [];
-    
-    // Gọi API tuần tự để tránh quá tải mạng
-    for (const genre of genres.slice(0, limit)) {
-      try {
-        const { data } = await jamendoClient.get('/tracks', {
-          params: {
-            tags: genre,
-            limit: 1,
-            featured: 1,
-            order: 'popularity_total',
-            imagesize: 300,
-          },
-        });
-        
-        const track = data?.results?.[0];
-        if (track) {
-          results.push({
-            id: `discover-${genre}`,
-            title: genre.charAt(0).toUpperCase() + genre.slice(1) + ' Mix',
-            subtitle: 'Popular tracks',
-            trackCount: Math.floor(Math.random() * 50) + 20,
-            image: track.image || track.album_image,
-            genre: genre,
-          });
-        }
-      } catch (genreError) {
-        console.warn(`Failed to fetch ${genre} playlist:`, genreError.message);
-        // Tiếp tục với genre tiếp theo
+    // We use Jamendo's official curation account (user_id: 5276149) 
+    // to fetch the same Featured Playlists reliably without 403 WAF errors.
+    const { data } = await jamendoClient.get('/playlists', {
+      params: {
+        limit,
+        user_id: 5276149,
+        order: 'creationdate_desc'
       }
-    }
+    });
 
-    return results;
+    return data?.results?.map(playlist => {
+      // Decode HTML entities
+      const name = playlist.name.replace(/&amp;/g, '&');
+      const imageUrl = `https://usercontent.jamendo.com?type=playlist&id=${playlist.id}&width=300`;
+
+      return {
+        id: `featured-${playlist.id}`,
+        originalId: playlist.id,
+        title: name,
+        subtitle: 'Featured',
+        trackCount: 0, // V3 playlist endpoint doesn't return track count directly
+        image: imageUrl,
+        genre: '',
+        type: 'playlist',
+      };
+    }) || [];
   } catch (error) {
     console.error('getPlaylists error:', error);
+    return [];
+  }
+}
+
+/**
+ * Get tracks by playlist ID
+ * @param {string|number} playlistId - Playlist ID
+ */
+export async function getTracksByPlaylist(playlistId) {
+  try {
+    const { data } = await jamendoClient.get('/playlists/tracks', {
+      params: {
+        id: playlistId,
+        limit: 50,
+      },
+    });
+
+    // The response has results array where the first item contains tracks array
+    if (data?.results?.[0]?.tracks) {
+      return data.results[0].tracks.map(track => ({
+        id: track.id,
+        title: track.name,
+        artist: track.artist_name,
+        artistId: track.artist_id,
+        image: track.image || track.album_image,
+        audio: track.audio,
+        duration: track.duration,
+        albumName: track.album_name,
+        albumId: track.album_id,
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('getTracksByPlaylist error:', error);
     return [];
   }
 }
@@ -137,7 +186,7 @@ export async function searchTracks(query, limit = 20, offset = 0) {
         imagesize: 200,
       },
     });
-    
+
     return data?.results?.map(track => ({
       id: track.id,
       title: track.name,
@@ -199,7 +248,7 @@ export async function getTracksByGenre(genre, limit = 50, order = 'popularity_to
         include: 'musicinfo',
       },
     });
-    
+
     return data?.results?.map(track => ({
       id: track.id,
       title: track.name,
@@ -235,7 +284,7 @@ export async function getTracksByGender(gender, limit = 20) {
         include: 'musicinfo',
       },
     });
-    
+
     return data?.results?.map(track => ({
       id: track.id,
       title: track.name,
@@ -266,7 +315,7 @@ export async function getTracksWithMusicInfo(limit = 20) {
         imagesize: 200,
       },
     });
-    
+
     return data?.results?.map(track => ({
       id: track.id,
       title: track.name,
@@ -300,21 +349,16 @@ export async function getArtists(limit = 20, offset = 0) {
       params: {
         limit,
         offset,
-        order: 'popularity_total',
-        imagesize: 200,
-        hasimage: 'true',
+        order: 'popularity_month',
+        // imagesize: 200,
+        hasimage: true,
       },
     });
-    
-    const defaultImage = 'https://via.placeholder.com/200/333333/02CDAC?text=Artist';
-    
+
     return data?.results?.map(artist => ({
       id: artist.id,
       name: artist.name,
-      // Check for empty string, null, undefined, or placeholder URLs
-      image: (artist.image && artist.image.trim() !== '' && !artist.image.includes('default')) 
-        ? artist.image 
-        : defaultImage,
+      image: artist.image,
       website: artist.website,
       joindate: artist.joindate,
     })) ?? [];
@@ -341,7 +385,7 @@ export async function getTracksByArtist(artistId, limit = 50, offset = 0) {
         include: 'musicinfo',
       },
     });
-    
+
     return data?.results?.map(track => ({
       id: track.id,
       title: track.name,
@@ -362,6 +406,7 @@ export default {
   getTopTracks,
   getHotTracks,
   getPlaylists,
+  getTracksByPlaylist,
   searchTracks,
   getGenres,
   getTracksByGenre,
@@ -369,5 +414,6 @@ export default {
   getTracksWithMusicInfo,
   getArtists,
   getTracksByArtist,
+  getAppFeatures,
   GENRES,
 };
