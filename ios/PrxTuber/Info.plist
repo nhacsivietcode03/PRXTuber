@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <true/>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>PrxTuber</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>com.bidv.cdonline</string>
+        </array>
+      </dict>
+    </array>
+    <key>CFBundleVersion</key>
+    <string>3</string>
+    <key>HOT_UPDATER_CHANNEL</key>
+    <string>production</string>
+    <key>HOT_UPDATER_PUBLIC_KEY</key>
+    <string>-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA1W5D/jsKtJjX9d/AS+kZ
+AyONxmKdR6L1+/rI4rilXT2FPKaYTfdl1PugImilxh22o6vnbu8rKj65vxbTZFY/
+zteE8ZtknmC9Isd1aoxf7ftdKZ9YfBozhB+NiZm4h1GqpAVU1R/ILYa6dTPyVQ2i
+H27vKYhy4Zgh0SB0efYf8m5a2aA51ggYmGWmyB6MVQLSmCRpii65GisHszSD5yfo
+2HGLNmopIZUQ0DszP/F50UEPw3/oGT3B1EMCbOYyxEBl2fdS6M+cOSPqGn94sIFx
+k5bBGx1qKIXjLfJ49QbvV288pgRDyyhbUgsUvVqPyr6AHoMj0+k/VkQX8yLKl6+B
+/s10G/eZwULVBuw+PBVP8vsDlItl894n+n/ObIpNgxI1njRYXJsbUnBSJppXIJ1w
+fRpMvuw5xKE3ed7wF/AAV24r19GKbOUOQyTgLGI0e/UT9SYkxU7l+O/3wKDeRqP4
+emLlqCnTKZ6O+bxEL47Xd8nGrb9kh3fawY9nhUscjGNcVQO8yPRT/ujFuyaXy6Pu
+AYYWxMtsxgtXqLjBrgo8X/6h1obT3VFAlIIvEJQ6JfBEqrXWHyhYczqznnH/1alM
+pu6wVjKxKyH7pAtmH8t7NiDDpB3ppNlybqRjUVFRamnA249vt2gzw60IAVa4Vt8I
+f2Ns4OGv8GR9iGm6rea21hkCAwEAAQ==
+-----END PUBLIC KEY-----</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>12.0</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+      <key>NSAllowsArbitraryLoads</key>
+      <false/>
+      <key>NSAllowsLocalNetworking</key>
+      <true/>
+    </dict>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <key>RCTNewArchEnabled</key>
+    <true/>
+    <key>UILaunchStoryboardName</key>
+    <string>SplashScreen</string>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+      <string>arm64</string>
+    </array>
+    <key>UIRequiresFullScreen</key>
+    <false/>
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleDefault</string>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UIUserInterfaceStyle</key>
+    <string>Light</string>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+  </dict>
+</plist>

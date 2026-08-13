@@ -14,14 +14,19 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
+import Constants from 'expo-constants';
 
 import { BottomNavBar, SleepTimerSheet } from '../components';
 import colors from '../theme/colors';
 import { useMusicPlayer } from '../context';
+import { logger } from '../utils/logger';
 
 const SettingsScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('settings');
   const [streamQuality, setStreamQuality] = useState('Normal');
+
+  const appVersion = Constants.expoConfig?.version || '1.0.0';
+  const buildNumber = Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode?.toString() || '23';
   const [lightMode, setLightMode] = useState(false);
   const [selectedHour, setSelectedHour] = useState(6);
   const [selectedMinute, setSelectedMinute] = useState(0);
@@ -140,7 +145,7 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const renderSettingItem = ({ icon, IconComponent = Ionicons, title, value, onPress }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.settingItem}
       onPress={onPress}
       activeOpacity={0.7}
@@ -160,7 +165,7 @@ const SettingsScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
+
       {/* Header */}
       <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.header}>
@@ -168,7 +173,7 @@ const SettingsScreen = ({ navigation }) => {
         </View>
       </SafeAreaView>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -219,6 +224,18 @@ const SettingsScreen = ({ navigation }) => {
             value: timerActive ? 'Active' : 'Off',
             onPress: () => setShowSleepTimer(true),
           })}
+
+          {renderSettingItem({
+            icon: 'share-social-outline',
+            IconComponent: Ionicons,
+            title: 'Share Diagnostic Log',
+            onPress: () => logger.exportAndShareLogs(),
+          })}
+        </View>
+
+        {/* Version Info */}
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>Version: {appVersion} - (15)</Text>
         </View>
 
         <SleepTimerSheet
@@ -263,6 +280,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: 120,
   },
   settingsContainer: {
@@ -295,6 +313,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '500',
+  },
+  versionContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 'auto',
+    marginBottom: 8,
+  },
+  versionText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    fontWeight: '400',
   },
 });
 

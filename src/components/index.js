@@ -14,3 +14,5 @@ export { default as AddToPlaylistSheet } from './AddToPlaylistSheet';
 export { default as CreatePlaylistModal } from './CreatePlaylistModal';
 export { default as RadioCard } from './RadioCard';
 export { default as SleepTimerSheet } from './SleepTimerSheet';
+export { default as HotUpdaterLoadingScreen } from './HotUpdaterLoadingScreen';
+

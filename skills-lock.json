@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "hot-updater": {
+      "source": "gronxb/hot-updater",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/hot-updater/SKILL.md",
+      "computedHash": "bb169e3d244beabc7da81e6675e34b6450a71700677d9d3138b20c5016ebc352"
+    }
+  }
+}

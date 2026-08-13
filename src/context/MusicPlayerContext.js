@@ -1,6 +1,6 @@
 // MusicPlayerContext - Global state for music playback
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { usePlaylist } from './PlaylistContext';
 
 const MusicPlayerContext = createContext();
@@ -25,6 +25,7 @@ export const MusicPlayerProvider = ({ children }) => {
   const [repeatMode, setRepeatMode] = useState(0); // 0: off, 1: all, 2: one
   
   const soundRef = useRef(null);
+  const subscriptionRef = useRef(null);
 
   // Format time from milliseconds
   const formatTime = useCallback((millis) => {
@@ -41,44 +42,49 @@ export const MusicPlayerProvider = ({ children }) => {
   // Playback status update callback
   const onPlaybackStatusUpdate = useCallback((status) => {
     if (status.isLoaded) {
-      setPosition(status.positionMillis);
-      setDuration(status.durationMillis || 0);
-      setIsPlaying(status.isPlaying);
+      setPosition(status.currentTime * 1000);
+      setDuration((status.duration || 0) * 1000);
+      setIsPlaying(status.playing);
 
       // Handle song end
       if (status.didJustFinish) {
         playNext();
       }
     }
-  }, []);
+  }, [playNext]);
 
   // Load and play audio
   const loadAudio = useCallback(async (audioUrl) => {
     try {
       setIsLoading(true);
       
-      // Unload previous sound
+      // Configure audio mode
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: 'duckOthers',
+      });
+
+      // Clean up previous sound and listener
+      if (subscriptionRef.current) {
+        subscriptionRef.current.remove();
+        subscriptionRef.current = null;
+      }
       if (soundRef.current) {
-        await soundRef.current.unloadAsync();
+        soundRef.current.remove();
         soundRef.current = null;
       }
 
-      // Configure audio mode
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: true,
+      // Create new player
+      const player = createAudioPlayer(audioUrl);
+      soundRef.current = player;
+
+      // Subscribe to status updates
+      subscriptionRef.current = player.addListener('playbackStatusUpdate', (status) => {
+        onPlaybackStatusUpdate(status);
       });
 
-      // Load new sound
-      const { sound, status } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: true },
-        onPlaybackStatusUpdate
-      );
-
-      soundRef.current = sound;
-      setDuration(status.durationMillis || 0);
+      player.play();
       setIsPlaying(true);
     } catch (error) {
       console.error('Error loading audio:', error);
@@ -106,16 +112,16 @@ export const MusicPlayerProvider = ({ children }) => {
     if (!soundRef.current) return;
     
     if (isPlaying) {
-      await soundRef.current.pauseAsync();
+      soundRef.current.pause();
     } else {
-      await soundRef.current.playAsync();
+      soundRef.current.play();
     }
   }, [isPlaying]);
 
   // Seek to position
   const seekTo = useCallback(async (value) => {
     if (soundRef.current) {
-      await soundRef.current.setPositionAsync(value);
+      await soundRef.current.seekTo(value / 1000);
     }
   }, []);
 
@@ -159,9 +165,13 @@ export const MusicPlayerProvider = ({ children }) => {
 
   // Stop playback
   const stop = useCallback(async () => {
+    if (subscriptionRef.current) {
+      subscriptionRef.current.remove();
+      subscriptionRef.current = null;
+    }
     if (soundRef.current) {
-      await soundRef.current.stopAsync();
-      await soundRef.current.unloadAsync();
+      soundRef.current.pause();
+      soundRef.current.remove();
       soundRef.current = null;
     }
     setCurrentSong(null);
@@ -173,8 +183,11 @@ export const MusicPlayerProvider = ({ children }) => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.remove();
+      }
       if (soundRef.current) {
-        soundRef.current.unloadAsync();
+        soundRef.current.remove();
       }
     };
   }, []);
