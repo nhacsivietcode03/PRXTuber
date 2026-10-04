@@ -8,7 +8,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "hot:console": "npx hot-updater console",
-    "hot:doctor": "npx hot-updater doctor",
+    "hot:doctor": "npx hot-updater doctor --server-base-url https://prxtuber-updater-worker.iop883684.workers.dev/api/check-update",
     "hot:deploy": "chmod +x script/deploy_hot_update.command && ./script/deploy_hot_update.command",
     "hot:list": "npx hot-updater bundle list",
     "postinstall": "patch-package"

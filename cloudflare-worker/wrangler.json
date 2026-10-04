@@ -1,0 +1,25 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "prxtuber-updater-worker",
+  "main": "./src/index.ts",
+  "compatibility_date": "2025-01-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_id": "547d482e-dc68-42e9-be06-68bcc43f00a2"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "prxtuber-bundles"
+    }
+  ],
+  "vars": {
+    "JWT_SECRET": "prxtuber-hot-updater-jwt-secret-2026-key"
+  }
+}

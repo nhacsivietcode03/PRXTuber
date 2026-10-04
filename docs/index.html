@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hướng Dẫn Kiểm Thử & Vận Hành Hot Update (OTA) | PRXTuber</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0d14;
+      --bg-secondary: #111726;
+      --bg-card: rgba(18, 24, 38, 0.75);
+      --bg-card-hover: rgba(28, 36, 56, 0.85);
+      --bg-code: #0b0f19;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(99, 102, 241, 0.3);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-indigo: #6366f1;
+      --accent-purple: #a855f7;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --sidebar-width: 280px;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.9);
+      --bg-card-hover: #ffffff;
+      --bg-code: #f1f5f9;
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-glow: rgba(99, 102, 241, 0.2);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.65;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Ambient Background Glow */
+    .ambient-glow {
+      position: fixed;
+      top: -150px;
+      right: 10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.08) 50%, transparent 70%);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .ambient-glow-2 {
+      position: fixed;
+      bottom: 10%;
+      left: 5%;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 60%);
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Layout */
+    .app-container {
+      display: flex;
+      flex: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-subtle);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    [data-theme="light"] .brand-title {
+      background: linear-gradient(90deg, #0f172a, #475569);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-group-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      padding-left: 8px;
+    }
+
+    .nav-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-links a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      background: var(--bg-card-hover);
+      color: var(--accent-indigo);
+      transform: translateX(3px);
+    }
+
+    .nav-links a.active {
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent-indigo);
+      font-weight: 600;
+    }
+
+    /* Main Content */
+    .content-wrap {
+      flex: 1;
+      padding: 40px 48px 80px 48px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .badge-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent-indigo);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .badge.emerald {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent-emerald);
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .badge.cyan {
+      background: rgba(6, 182, 212, 0.12);
+      color: var(--accent-cyan);
+      border-color: rgba(6, 182, 212, 0.25);
+    }
+
+    .theme-toggle {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-indigo);
+    }
+
+    /* Hero Section */
+    .hero {
+      margin-bottom: 48px;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    [data-theme="light"] .hero h1 {
+      background: linear-gradient(135deg, #0f172a 40%, #475569 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.12rem;
+      color: var(--text-secondary);
+      max-width: 800px;
+    }
+
+    /* Section Components */
+    section {
+      margin-bottom: 64px;
+      scroll-margin-top: 32px;
+    }
+
+    .section-title {
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title .section-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-purple));
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(12px);
+      margin-bottom: 24px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-glow);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Alert Banners */
+    .alert {
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      border-left: 4px solid;
+    }
+
+    .alert.important {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: var(--accent-indigo);
+      color: var(--text-primary);
+    }
+
+    .alert.warning {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: var(--accent-amber);
+      color: var(--text-primary);
+    }
+
+    .alert.tip {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: var(--accent-emerald);
+      color: var(--text-primary);
+    }
+
+    .alert-icon {
+      font-size: 1.25rem;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .alert-content h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .alert-content p {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Interactive Pipeline / Architecture Diagram */
+    .flow-diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 28px 0;
+    }
+
+    .flow-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      position: relative;
+    }
+
+    .flow-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 18px;
+      position: relative;
+    }
+
+    .flow-card .flow-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--accent-cyan);
+    }
+
+    .flow-card p {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    /* Comparison Table */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      margin: 20px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Code Blocks */
+    .code-block {
+      background: var(--bg-code);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      margin: 16px 0;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+      border-color: var(--accent-indigo);
+    }
+
+    .copy-btn.copied {
+      color: var(--accent-emerald);
+      border-color: var(--accent-emerald);
+    }
+
+    pre {
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+
+    [data-theme="light"] pre {
+      color: #1e293b;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    p code, li code {
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent-indigo);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.85em;
+    }
+
+    /* Step Walkthrough Cards */
+    .step-card {
+      position: relative;
+      padding-left: 56px;
+      margin-bottom: 32px;
+    }
+
+    .step-badge {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--bg-card);
+      border: 2px solid var(--accent-indigo);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: var(--accent-indigo);
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .step-card h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .step-card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+
+    /* Interactive Checklist */
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 12px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+
+    .checklist-item:hover {
+      border-color: var(--border-glow);
+    }
+
+    .checklist-item.checked {
+      opacity: 0.65;
+      text-decoration: line-through;
+      border-color: var(--accent-emerald);
+    }
+
+    .checklist-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent-emerald);
+      margin-top: 3px;
+      cursor: pointer;
+    }
+
+    /* Accordion FAQ */
+    .accordion {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .accordion-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .accordion-header {
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+
+    .accordion-header:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .accordion-content {
+      padding: 0 20px 16px 20px;
+      display: none;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 14px;
+    }
+
+    .accordion-item.open .accordion-content {
+      display: block;
+    }
+
+    .accordion-icon {
+      transition: transform 0.2s;
+    }
+
+    .accordion-item.open .accordion-icon {
+      transform: rotate(180deg);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 32px 48px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .sidebar {
+        display: none;
+      }
+      .content-wrap {
+        padding: 24px 20px;
+      }
+      .hero h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow"></div>
+  <div class="ambient-glow-2"></div>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v8"></path>
+            <path d="m4.93 10.93 1.41 1.41"></path>
+            <path d="M2 18h2"></path>
+            <path d="M20 18h2"></path>
+            <path d="m19.07 10.93-1.41 1.41"></path>
+            <path d="M22 22H2"></path>
+            <path d="m8 6 4-4 4 4"></path>
+            <path d="M16 18a4 4 0 0 0-8 0"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">PRXTuber Docs</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted);">Hot Update Handbook</div>
+        </div>
+      </div>
+
+      <nav>
+        <div class="nav-group-title">MỤC LỤC TÀI LIỆU</div>
+        <ul class="nav-links">
+          <li><a href="#overview" class="active">1. Tổng Quan Kiến Trúc</a></li>
+          <li><a href="#core-concept">2. Debug vs Release trên Simulator</a></li>
+          <li><a href="#testing-steps">3. Quy Trình Test Release (Chuẩn)</a></li>
+          <li><a href="#quick-checklist">4. Checklist Thao Tác Nhanh</a></li>
+          <li><a href="#dev-testing">5. Test Nhanh Trong Chế Độ DEV</a></li>
+          <li><a href="#cheatsheet">6. Bảng Tra Cứu Lệnh CLI</a></li>
+          <li><a href="#troubleshooting">7. Xử Lý Sự Cố & FAQ</a></li>
+        </ul>
+      </nav>
+
+      <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+        <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+          <strong>Target:</strong> iOS 1.0.0 / Android 1.0.0<br>
+          <strong>Server:</strong> Cloudflare D1 + R2
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-wrap">
+      <!-- Top Action Bar -->
+      <div class="top-bar">
+        <div class="badge-bar">
+          <span class="badge">React Native 0.81.5</span>
+          <span class="badge cyan">Expo 54</span>
+          <span class="badge emerald">HotUpdater v0.33.2</span>
+          <span class="badge">RSA Signed</span>
+        </div>
+        <button class="theme-toggle" id="themeToggleBtn">
+          <span id="themeIcon">☀️</span>
+          <span id="themeText">Giao diện Sáng</span>
+        </button>
+      </div>
+
+      <!-- Hero Header -->
+      <div class="hero">
+        <h1>Hướng Dẫn Kiểm Thử Hot Update (OTA) Trên Simulator</h1>
+        <p>Cẩm nang kỹ thuật chi tiết giúp bạn hiểu rõ cơ chế nạp bundle, quy trình build Release trên iOS Simulator, triển khai bản vá qua Cloudflare và kiểm tra cập nhật tức thì.</p>
+      </div>
+
+      <!-- Section 1: Overview -->
+      <section id="overview">
+        <h2 class="section-title">
+          <span class="section-number">1</span>
+          Tổng Quan Kiến Trúc Hot Updater trong PRXTuber
+        </h2>
+        <div class="card">
+          <p style="margin-bottom: 16px; color: var(--text-secondary);">
+            Hệ thống <strong>Hot Update (Over-The-Air)</strong> cho phép cập nhật giao diện, logic JavaScript và tài nguyên mà không cần thông qua App Store hoặc Google Play review.
+          </p>
+
+          <div class="flow-diagram">
+            <div class="flow-steps">
+              <div class="flow-card">
+                <div class="flow-header">
+                  <span>1. Lập Trình Viên</span>
+                </div>
+                <p>Thực hiện sửa lỗi hoặc cập nhật tính năng trong code React Native.</p>
+              </div>
+
+              <div class="flow-card">
+                <div class="flow-header">
+                  <span>2. Đóng Gói & Ký Số</span>
+                </div>
+                <p>CLI tạo bundle JS, assets và ký điện tử RSA bằng <code>keys/private-key.pem</code>.</p>
+              </div>
+
+              <div class="flow-card">
+                <div class="flow-header">
+                  <span>3. Cloudflare D1 + R2</span>
+                </div>
+                <p>Lưu siêu dữ liệu phiên bản trên D1 và file nén bundle trên R2 Storage.</p>
+              </div>
+
+              <div class="flow-card">
+                <div class="flow-header">
+                  <span>4. Simulator / Thiết Bị</span>
+                </div>
+                <p>Tải bundle, xác thực chữ ký bằng <code>public-key.pem</code> và nạp lại app.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert tip">
+            <div class="alert-icon">💡</div>
+            <div class="alert-content">
+              <h4>Update Server URL của Dự Án</h4>
+              <p><code>https://prxtuber-updater-worker.iop883684.workers.dev/api/check-update</code></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Core Concept -->
+      <section id="core-concept">
+        <h2 class="section-title">
+          <span class="section-number">2</span>
+          Cốt Lõi: Vì Sao Phải Dùng Bản Release Trên Simulator?
+        </h2>
+        <div class="card">
+          <p style="color: var(--text-secondary); margin-bottom: 16px;">
+            Nhiều lập trình viên gặp tình huống: Đã deploy bản hot update mới, app thông báo tải thành công nhưng khi khởi động lại thì giao diện vẫn không đổi. Lý do bắt nguồn từ đoạn mã gốc trong <code>AppDelegate.swift</code>:
+          </p>
+
+          <div class="code-block">
+            <div class="code-header">
+              <span>ios/PrxTuber/AppDelegate.swift (Dòng 64 - 70)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Sao chép</button>
+            </div>
+            <pre><code>override func bundleURL() -> URL? {
+#if DEBUG
+    // Chế độ DEBUG: Luôn tải bundle trực tiếp từ Metro Dev Server (cổng 8081)
+    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
+#else
+    // Chế độ RELEASE: Đọc bundle offline do HotUpdater quản lý trong sandbox đĩa
+    return HotUpdater.bundleURL()
+#endif
+}</code></pre>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tiêu chí so sánh</th>
+                  <th>Chế độ Debug (Mặc định)</th>
+                  <th>Chế độ Release (Khuyên dùng test OTA)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Lệnh khởi chạy</strong></td>
+                  <td><code>npx expo run:ios</code></td>
+                  <td><code>npx expo run:ios --configuration Release</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Nguồn đọc Bundle JS</strong></td>
+                  <td>Metro Bundler (Live qua mạng)</td>
+                  <td><code>HotUpdater.bundleURL()</code> (File cục bộ)</td>
+                </tr>
+                <tr>
+                  <td><strong>Hiệu lực Hot Update</strong></td>
+                  <td>Bị Metro ghi đè khi reload</td>
+                  <td><strong>Áp dụng 100% chính xác như thực tế</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>Fast Refresh (HMR)</strong></td>
+                  <td>Có hỗ trợ</td>
+                  <td>Không (chỉ cập nhật qua OTA)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert important">
+            <div class="alert-icon">📌</div>
+            <div class="alert-content">
+              <h4>Kết Luận Quan Trọng</h4>
+              <p>Để kiểm tra trọn vẹn quy trình <strong>Tải bundle -> Lưu vào máy -> Reload đọc bundle mới</strong>, bạn cần build app ở chế độ <strong>Release</strong> trên Simulator!</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Testing Steps -->
+      <section id="testing-steps">
+        <h2 class="section-title">
+          <span class="section-number">3</span>
+          Quy Trình Kiểm Thử Chuẩn Xác Từng Bước
+        </h2>
+
+        <!-- Step 1 -->
+        <div class="step-card">
+          <div class="step-badge">1</div>
+          <h3>Build & Cài Đặt Bản App Gốc (Release) Lên Simulator</h3>
+          <p>Tắt tiến trình Metro bundler đang chạy (nếu có), sau đó mở Terminal tại thư mục gốc và chạy lệnh:</p>
+          <div class="code-block">
+            <div class="code-header">
+              <span>Terminal</span>
+              <button class="copy-btn" onclick="copyCode(this)">Sao chép</button>
+            </div>
+            <pre><code>npx expo run:ios --configuration Release</code></pre>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">
+            Lệnh này biên dịch app với cấu hình Release, đóng gói sẵn mã JavaScript gốc vào file binary và cài trực tiếp lên iOS Simulator đang mở.
+          </p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-card">
+          <div class="step-badge">2</div>
+          <h3>Tạo Thay Đổi Giao Diện Trong Mã Nguồn Để Nhận Biết</h3>
+          <p>Mở file <code>src/screens/SettingsScreen.js</code> (hoặc bất kỳ màn hình nào) và thêm một dòng thông báo dễ nhận thấy:</p>
+          <div class="code-block">
+            <div class="code-header">
+              <span>src/screens/SettingsScreen.js</span>
+              <button class="copy-btn" onclick="copyCode(this)">Sao chép</button>
+            </div>
+            <pre><code>// Thêm vào trước nút "Kiểm tra bản cập nhật" hoặc ở đầu trang:
+&lt;View style={{ backgroundColor: '#10B981', padding: 12, borderRadius: 8, marginVertical: 10 }}&gt;
+  &lt;Text style={{ color: '#FFFFFF', fontWeight: 'bold', textAlign: 'center' }}&gt;
+    🎉 HOT UPDATE V2 TEST THÀNH CÔNG TRÊN SIMULATOR!
+  &lt;/Text&gt;
+&lt;/View&gt;</code></pre>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-card">
+          <div class="step-badge">3</div>
+          <h3>Đóng Gói & Deploy Bản Vá Lên Cloudflare Server</h3>
+          <p>Bạn có thể sử dụng script tương tác có sẵn của PRXTuber:</p>
+          <div class="code-block">
+            <div class="code-header">
+              <span>Terminal</span>
+              <button class="copy-btn" onclick="copyCode(this)">Sao chép</button>
+            </div>
+            <pre><code>npm run hot:deploy</code></pre>
+          </div>
+          <p>Hoặc chạy trực tiếp bằng lệnh CLI với cờ Force Update (<code>-f</code>):</p>
+          <div class="code-block">
+            <div class="code-header">
+              <span>Terminal</span>
+              <button class="copy-btn" onclick="copyCode(this)">Sao chép</button>
+            </div>
+            <pre><code>npx hot-updater deploy -p ios -c production -t 1.0.0 -m "Test Hot Update Simulator V2" -f</code></pre>
+          </div>
+          <div class="alert tip">
+            <div class="alert-icon">💡</div>
+            <div class="alert-content">
+              <h4>Kiểm Tra Bundle Đã Lên Server Chưa</h4>
+              <p>Chạy lệnh <code>npm run hot:list</code> để thấy bản bundle mới xuất hiện ở dòng đầu tiên với trạng thái <code>Enabled: yes</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-card">
+          <div class="step-badge">4</div>
+          <h3>Kiểm Tra & Áp Dụng Bản Cập Nhật Trên Simulator</h3>
+          <p>Có 2 cách kích hoạt cập nhật:</p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 16px 0;">
+            <div class="card" style="margin-bottom: 0;">
+              <h4 style="color: var(--accent-indigo); margin-bottom: 8px;">Cách A: Thủ công qua Màn hình Cài đặt</h4>
+              <ol style="padding-left: 20px; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6;">
+                <li>Mở app trên iOS Simulator.</li>
+                <li>Chuyển sang tab <strong>Cài đặt (Settings)</strong>.</li>
+                <li>Bấm vào mục <strong>"Kiểm tra bản cập nhật"</strong>.</li>
+                <li>App hiển thị popup thông báo có bản mới -> Bấm <strong>"Cập nhật ngay"</strong>.</li>
+                <li>Tải xong bấm <strong>"Khởi động lại"</strong> để áp dụng.</li>
+              </ol>
+            </div>
+
+            <div class="card" style="margin-bottom: 0;">
+              <h4 style="color: var(--accent-cyan); margin-bottom: 8px;">Cách B: Tự động khi Khởi động lại App</h4>
+              <ol style="padding-left: 20px; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6;">
+                <li>Vuốt ứng dụng lên từ thanh Home Bar (hoặc bấm tổ hợp đa nhiệm) để <strong>tắt hẳn app</strong>.</li>
+                <li>Mở lại app: Component <code>HotUpdater.wrap</code> sẽ tự động kiểm tra server.</li>
+                <li>Màn hình <code>HotUpdaterLoadingScreen</code> sẽ hiện thanh tiến trình % tải về.</li>
+                <li>App tự động tải xong và nạp lại giao diện mới tức thì!</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="alert tip">
+            <div class="alert-icon">🔍</div>
+            <div class="alert-content">
+              <h4>Xác Nhận Cập Nhật Thành Công</h4>
+              <p>Sau khi app nạp lại, bạn sẽ thấy banner màu xanh lá xuất hiện, đồng thời trong màn hình <strong>Settings</strong>, mã <strong>OTA Bundle ID</strong> ở dưới cùng đã đổi thành mã UUID của bản vá vừa deploy!</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: Quick Checklist -->
+      <section id="quick-checklist">
+        <h2 class="section-title">
+          <span class="section-number">4</span>
+          Checklist Thao Tác Nhanh Dành Cho Tester
+        </h2>
+        <div class="card">
+          <p style="color: var(--text-secondary); margin-bottom: 12px;">Bạn có thể tích chọn các bước dưới đây để theo dõi tiến độ test:</p>
+          <ul class="checklist">
+            <li class="checklist-item" onclick="toggleChecklist(this)">
+              <input type="checkbox">
+              <span>Đã tắt server Metro bundler cũ (tránh xung đột cổng 8081).</span>
+            </li>
+            <li class="checklist-item" onclick="toggleChecklist(this)">
+              <input type="checkbox">
+              <span>Đã chạy lệnh <code>npm run hot:doctor</code> và toàn bộ mục kiểm tra đều PASS.</span>
+            </li>
+            <li class="checklist-item" onclick="toggleChecklist(this)">
+              <input type="checkbox">
+              <span>Đã build và cài đặt bản Release lên iOS Simulator (<code>npx expo run:ios --configuration Release</code>).</span>
+            </li>
+            <li class="checklist-item" onclick="toggleChecklist(this)">
+              <input type="checkbox">
+              <span>Đã mở app bản gốc và ghi nhớ giao diện ban đầu.</span>
+            </li>
+            <li class="checklist-item" onclick="toggleChecklist(this)">
+              <input type="checkbox">
+              <span>Đã sửa một chi tiết trong code và chạy lệnh deploy (<code>npx hot-updater deploy -p ios -f</code>).</span>
+            </li>
+            <li class="checklist-item" onclick="toggleChecklist(this)">
+              <input type="checkbox">
+              <span>Đã kiểm tra danh sách bundle trên server bằng <code>npm run hot:list</code>.</span>
+            </li>
+            <li class="checklist-item" onclick="toggleChecklist(this)">
+              <input type="checkbox">
+              <span>Đã mở lại app trên Simulator và thấy giao diện thay đổi kèm mã OTA Bundle ID mới.</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Section 5: Dev Mode Testing -->
+      <section id="dev-testing">
+        <h2 class="section-title">
+          <span class="section-number">5</span>
+          Kiểm Thử Nhanh Trong Chế Độ DEBUG (__DEV__)
+        </h2>
+        <div class="card">
+          <p style="color: var(--text-secondary); margin-bottom: 16px;">
+            Nếu bạn chỉ muốn kiểm tra giao diện màn hình Loading, kiểm tra kết nối API Cloudflare Worker hoặc kiểm tra popup trong Settings mà không muốn mất thời gian build bản Release:
+          </p>
+
+          <ol style="padding-left: 20px; font-size: 0.92rem; color: var(--text-secondary); line-height: 1.8;">
+            <li>Mở file <code>src/config/hotUpdater.js</code>:
+              <div class="code-block">
+                <div class="code-header">
+                  <span>src/config/hotUpdater.js</span>
+                  <button class="copy-btn" onclick="copyCode(this)">Sao chép</button>
+                </div>
+                <pre><code>export const HOT_UPDATER_CONFIG = {
+  baseURL: "https://prxtuber-updater-worker.iop883684.workers.dev/api/check-update",
+  updateStrategy: "appVersion",
+  enableInDev: true, // 👈 Bật true để kích hoạt HotUpdater trong chế độ Debug
+};</code></pre>
+              </div>
+            </li>
+            <li>Khởi chạy app như bình thường: <code>npx expo run:ios</code>.</li>
+            <li>Vào tab <strong>Settings</strong> -> Bấm <strong>"Kiểm tra bản cập nhật"</strong> để test luồng gọi API và tải file zip.</li>
+          </ol>
+
+          <div class="alert warning">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+              <h4>Lưu Ý Quan Trọng Khi Bật enableInDev</h4>
+              <p>Trong chế độ Debug, do native code iOS luôn ưu tiên kết nối Metro, sau khi tải bundle về máy thì việc reload có thể vẫn nạp code từ Metro. Sau khi test xong API, hãy nhớ đặt <code>enableInDev: false</code> để không làm ảnh hưởng đến tính năng Fast Refresh khi code hàng ngày.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 6: CLI Cheatsheet -->
+      <section id="cheatsheet">
+        <h2 class="section-title">
+          <span class="section-number">6</span>
+          Bảng Tra Cứu Lệnh Vận Hành Nhanh
+        </h2>
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mục đích</th>
+                  <th>Lệnh Terminal</th>
+                  <th>Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Kiểm tra hệ thống</strong></td>
+                  <td><code>npm run hot:doctor</code></td>
+                  <td>Kiểm tra toàn bộ Cloudflare Worker, D1, R2 và cấu hình iOS/Android.</td>
+                </tr>
+                <tr>
+                  <td><strong>Xem danh sách bundle</strong></td>
+                  <td><code>npm run hot:list</code></td>
+                  <td>Liệt kê các bản cập nhật mới nhất, Bundle ID, Channel và trạng thái.</td>
+                </tr>
+                <tr>
+                  <td><strong>Deploy tương tác</strong></td>
+                  <td><code>npm run hot:deploy</code></td>
+                  <td>Menu tương tác: chọn platform, channel, force update, nhập ghi chú.</td>
+                </tr>
+                <tr>
+                  <td><strong>Mở Web Console</strong></td>
+                  <td><code>npm run hot:console</code></td>
+                  <td>Mở bảng điều khiển đồ họa trên trình duyệt quản lý bundle trực quan.</td>
+                </tr>
+                <tr>
+                  <td><strong>Rollback (Hoàn tác)</strong></td>
+                  <td><code>npx hot-updater rollback production -p ios -y</code></td>
+                  <td>Vô hiệu hóa bản bundle mới nhất, app sẽ tự động quay về bản trước đó.</td>
+                </tr>
+                <tr>
+                  <td><strong>Xem chi tiết 1 bundle</strong></td>
+                  <td><code>npx hot-updater bundle show &lt;bundle-id&gt;</code></td>
+                  <td>Xem kích thước file zip, hash SHA-256, target app version,...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 7: Troubleshooting -->
+      <section id="troubleshooting">
+        <h2 class="section-title">
+          <span class="section-number">7</span>
+          Xử Lý Sự Cố & Câu Hỏi Thường Gặp (FAQ)
+        </h2>
+
+        <div class="accordion">
+          <div class="accordion-item open">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>1. App trên Simulator báo "Bạn đang dùng phiên bản mới nhất" dù vừa mới deploy?</span>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <strong>Nguyên nhân:</strong>
+              <ul style="padding-left: 20px; margin-top: 6px;">
+                <li><strong>Lệch Target App Version (<code>-t</code>):</strong> Trong <code>app.json</code> phiên bản là <code>1.0.0</code>. Nếu bạn deploy với <code>-t 1.0.1</code> thì app <code>1.0.0</code> sẽ không nhận được bản vá. Khắc phục: Deploy lại với <code>-t 1.0.0</code> hoặc <code>-t "*"</code>.</li>
+                <li><strong>Khác Channel:</strong> Kiểm tra xem app đang cấu hình channel nào (mặc định là <code>production</code>). Khi deploy phải cùng channel <code>production</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>2. Lỗi "Bundle signature verification failed"?</span>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <strong>Tình trạng:</strong> Trước đây thư viện <code>@hot-updater/react-native</code> trên iOS dùng thuật toán ký số không đồng bộ với CLI Node.js.<br>
+              <strong>Giải pháp:</strong> Đã được vá triệt để trong dự án qua patch <code>patches/@hot-updater+react-native+0.33.2.patch</code>. Sau khi chạy <code>npm install</code>, lệnh <code>postinstall: patch-package</code> sẽ tự động áp dụng bản vá chuẩn RSA-SHA256 cho iOS.
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>3. Sau khi cập nhật xong có cần build lại native không?</span>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <strong>Không cần!</strong> Bản chất của Hot Update là chỉ cập nhật mã JavaScript và Assets (hình ảnh, fonts). Người dùng chỉ cần mở lại app là có ngay tính năng mới.<br>
+              <em>Lưu ý: Chỉ cần build lại native khi bạn thêm/sửa một thư viện có mã native (Objective-C/Swift/Java/Kotlin) hoặc đổi quyền trong <code>Info.plist</code> / <code>AndroidManifest.xml</code>.</em>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>4. Muốn test trên Android Emulator thì làm thế nào?</span>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              Tương tự như iOS, trên Android bạn build bản Release lên Emulator:
+              <div class="code-block" style="margin: 8px 0;">
+                <pre><code>npx expo run:android --variant release</code></pre>
+              </div>
+              Sau đó deploy bản vá cho Android:
+              <div class="code-block" style="margin: 8px 0;">
+                <pre><code>npx hot-updater deploy -p android -c production -t 1.0.0 -f -m "Test Android OTA"</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2026 PRXTuber Project. Được xây dựng dựa trên Hot Updater, Cloudflare Workers, R2 & D1.</p>
+  </footer>
+
+  <script>
+    // Copy code button handler
+    function copyCode(btn) {
+      const codeBlock = btn.closest('.code-block').querySelector('pre code');
+      if (!codeBlock) return;
+      
+      navigator.clipboard.writeText(codeBlock.innerText).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = 'Đã chép!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // Checklist interactive toggle
+    function toggleChecklist(item) {
+      const checkbox = item.querySelector('input[type="checkbox"]');
+      if (event.target !== checkbox) {
+        checkbox.checked = !checkbox.checked;
+      }
+      if (checkbox.checked) {
+        item.classList.add('checked');
+      } else {
+        item.classList.remove('checked');
+      }
+    }
+
+    // Accordion toggle
+    function toggleAccordion(header) {
+      const item = header.closest('.accordion-item');
+      item.classList.toggle('open');
+    }
+
+    // Dark/Light theme toggle
+    const themeBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+    let currentTheme = 'dark';
+
+    themeBtn.addEventListener('click', () => {
+      if (currentTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        currentTheme = 'light';
+        themeIcon.innerText = '🌙';
+        themeText.innerText = 'Giao diện Tối';
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        currentTheme = 'dark';
+        themeIcon.innerText = '☀️';
+        themeText.innerText = 'Giao diện Sáng';
+      }
+    });
+
+    // Active navigation scroll spy
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sections = document.querySelectorAll('section');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (pageYOffset >= sectionTop - 120) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${current}`) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

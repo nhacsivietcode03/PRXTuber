@@ -1,0 +1,91 @@
+diff --git a/node_modules/@hot-updater/react-native/ios/HotUpdater/Internal/SignatureVerifier.swift b/node_modules/@hot-updater/react-native/ios/HotUpdater/Internal/SignatureVerifier.swift
+index b5d125f..d6df085 100644
+--- a/node_modules/@hot-updater/react-native/ios/HotUpdater/Internal/SignatureVerifier.swift
++++ b/node_modules/@hot-updater/react-native/ios/HotUpdater/Internal/SignatureVerifier.swift
+@@ -274,34 +274,43 @@ public class SignatureVerifier {
+             return .failure(.invalidSignatureFormat)
+         }
+ 
+-        let algorithm: SecKeyAlgorithm = .rsaSignatureMessagePKCS1v15SHA256
+-
+-        guard SecKeyIsAlgorithmSupported(publicKey, .verify, algorithm) else {
+-            NSLog("[SignatureVerifier] RSA-SHA256 algorithm not supported")
+-            return .failure(.securityFrameworkError(-1))
++        let messageAlgorithm: SecKeyAlgorithm = .rsaSignatureMessagePKCS1v15SHA256
++        let digestAlgorithm: SecKeyAlgorithm = .rsaSignatureDigestPKCS1v15SHA256
++
++        // Try message algorithm first (Node.js crypto.createSign('RSA-SHA256') & Android Signature.getInstance('SHA256withRSA') hash the 32-byte fileHash and sign it)
++        if SecKeyIsAlgorithmSupported(publicKey, .verify, messageAlgorithm) {
++            var error: Unmanaged<CFError>?
++            let verified = SecKeyVerifySignature(
++                publicKey,
++                messageAlgorithm,
++                fileHashData as CFData,
++                signatureData as CFData,
++                &error
++            )
++            if verified {
++                NSLog("[SignatureVerifier] ✅ Signature verified successfully with rsaSignatureMessagePKCS1v15SHA256")
++                return .success(())
++            }
+         }
+ 
+-        var error: Unmanaged<CFError>?
+-        let verified = SecKeyVerifySignature(
+-            publicKey,
+-            algorithm,
+-            fileHashData as CFData,
+-            signatureData as CFData,
+-            &error
+-        )
+-
+-        if let err = error?.takeRetainedValue() {
+-            NSLog("[SignatureVerifier] Verification failed: \(err)")
+-            return .failure(.signatureVerificationFailed)
++        // Fallback to digest algorithm
++        if SecKeyIsAlgorithmSupported(publicKey, .verify, digestAlgorithm) {
++            var error: Unmanaged<CFError>?
++            let verified = SecKeyVerifySignature(
++                publicKey,
++                digestAlgorithm,
++                fileHashData as CFData,
++                signatureData as CFData,
++                &error
++            )
++            if verified {
++                NSLog("[SignatureVerifier] ✅ Signature verified successfully with rsaSignatureDigestPKCS1v15SHA256")
++                return .success(())
++            }
+         }
+ 
+-        if verified {
+-            NSLog("[SignatureVerifier] ✅ Signature verified successfully")
+-            return .success(())
+-        } else {
+-            NSLog("[SignatureVerifier] ❌ Signature verification failed")
+-            return .failure(.signatureVerificationFailed)
+-        }
++        NSLog("[SignatureVerifier] ❌ Signature verification failed")
++        return .failure(.signatureVerificationFailed)
+     }
+ 
+     /**
+diff --git a/node_modules/@hot-updater/react-native/ios/HotUpdater/Internal/URLSessionDownloadService.swift b/node_modules/@hot-updater/react-native/ios/HotUpdater/Internal/URLSessionDownloadService.swift
+index 48f5766..38b45cb 100644
+--- a/node_modules/@hot-updater/react-native/ios/HotUpdater/Internal/URLSessionDownloadService.swift
++++ b/node_modules/@hot-updater/react-native/ios/HotUpdater/Internal/URLSessionDownloadService.swift
+@@ -160,6 +160,14 @@ extension URLSessionDownloadService: URLSessionDownloadDelegate {
+             return
+         }
+ 
++        // Validate HTTP status code
++        if let httpResponse = downloadTask.response as? HTTPURLResponse, httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
++            NSLog("[DownloadService] HTTP error downloading bundle: \(httpResponse.statusCode)")
++            try? FileManager.default.removeItem(at: location)
++            completion?(.failure(NSError(domain: "HotUpdaterError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Download failed with HTTP \(httpResponse.statusCode)"])))
++            return
++        }
++
+         // Verify file size
+         let expectedSize = downloadTask.response?.expectedContentLength ?? -1
+         let actualSize: Int64?

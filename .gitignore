@@ -43,3 +43,14 @@ keys/
 
 # hot-updater
 .hot-updater/output
+build/
+
+# cloudflare worker & wrangler
+.wrangler/
+cloudflare-worker/dist/
+cloudflare-worker/.wrangler/
+
+# local tooling & certs
+.codegraph/
+script/.certs/
+hosting/

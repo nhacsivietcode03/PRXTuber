@@ -20,6 +20,8 @@ import { BottomNavBar, SleepTimerSheet } from '../components';
 import colors from '../theme/colors';
 import { useMusicPlayer } from '../context';
 import { logger } from '../utils/logger';
+import { HotUpdater } from '@hot-updater/react-native';
+import { HOT_UPDATER_CONFIG } from '../config/hotUpdater';
 
 const SettingsScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('settings');
@@ -33,9 +35,70 @@ const SettingsScreen = ({ navigation }) => {
   const [timerActive, setTimerActive] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [showSleepTimer, setShowSleepTimer] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [otaBundleId, setOtaBundleId] = useState(null);
   const timerRef = useRef(null);
 
   const { isPlaying, togglePlayPause } = useMusicPlayer();
+
+  useEffect(() => {
+    try {
+      const bId = HotUpdater.getBundleId();
+      if (bId && bId !== '00000000-0000-0000-0000-000000000000') {
+        setOtaBundleId(bId);
+      }
+    } catch (e) {
+      // Ignore in non-native environments
+    }
+  }, []);
+
+  const handleCheckUpdate = async () => {
+    if (isCheckingUpdate) return;
+    setIsCheckingUpdate(true);
+    Toast.show({ type: 'info', text1: 'Hot Update', text2: 'Đang kiểm tra bản cập nhật...' });
+    try {
+      const updateInfo = await HotUpdater.checkForUpdate({
+        baseURL: HOT_UPDATER_CONFIG.baseURL,
+        updateStrategy: HOT_UPDATER_CONFIG.updateStrategy,
+      });
+
+      if (updateInfo) {
+        Alert.alert(
+          'Có bản cập nhật mới',
+          `Đã tìm thấy bản cập nhật mới!\n\nNội dung: ${updateInfo.message || 'Bản vá cập nhật'}\nBundle ID: ${updateInfo.id.substring(0, 8)}...`,
+          [
+            { text: 'Để sau', style: 'cancel' },
+            {
+              text: 'Cập nhật ngay',
+              onPress: async () => {
+                Toast.show({ type: 'info', text1: 'Đang tải...', text2: 'Đang tải bản cập nhật mới' });
+                try {
+                  const success = await updateInfo.updateBundle();
+                  if (success) {
+                    Alert.alert('Cập nhật thành công', 'Khởi động lại ứng dụng ngay để áp dụng?', [
+                      { text: 'Để sau', style: 'cancel' },
+                      { text: 'Khởi động lại', onPress: () => HotUpdater.reload() },
+                    ]);
+                  } else {
+                    Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không thể tải gói cập nhật.' });
+                  }
+                } catch (e) {
+                  Alert.alert('Lỗi tải cập nhật', e.message || String(e));
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Toast.show({ type: 'success', text1: 'Đã cập nhật', text2: 'Bạn đang dùng phiên bản mới nhất!' });
+      }
+    } catch (err) {
+      console.warn('[HotUpdater Check Error]', err);
+      Alert.alert('Kiểm tra thất bại', err.message || 'Không thể kết nối đến máy chủ cập nhật.');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const minutes = Array.from({ length: 60 }, (_, i) => i);
@@ -231,11 +294,22 @@ const SettingsScreen = ({ navigation }) => {
             title: 'Share Diagnostic Log',
             onPress: () => logger.exportAndShareLogs(),
           })}
+
+          {renderSettingItem({
+            icon: 'cloud-download-outline',
+            IconComponent: Ionicons,
+            title: 'Kiểm tra bản cập nhật',
+            value: isCheckingUpdate ? 'Đang kiểm tra...' : (otaBundleId ? `OTA: ${otaBundleId.substring(0, 8)}` : undefined),
+            onPress: handleCheckUpdate,
+          })}
         </View>
 
         {/* Version Info */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Version: {appVersion} - (15)</Text>
+          <Text style={styles.versionText}>Version 5: {appVersion} - ({buildNumber})</Text>
+          {otaBundleId ? (
+            <Text style={styles.otaBundleText}>OTA Bundle: {otaBundleId.substring(0, 13)}...</Text>
+          ) : null}
         </View>
 
         <SleepTimerSheet
@@ -324,6 +398,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
     fontWeight: '400',
+  },
+  otaBundleText: {
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: 4,
+    fontWeight: '500',
   },
 });
 
